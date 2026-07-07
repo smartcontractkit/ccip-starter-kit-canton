@@ -1,0 +1,45 @@
+{
+  "name": "@chainlink/ccip-starter-kit-canton",
+  "version": "1.0.0",
+  "description": "Starter kit for CCIP data and token transfers between Canton testnet and Ethereum Sepolia",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "canton2any:data": "tsx scripts/canton2any/ccipSendData.ts",
+    "canton2any:token": "tsx scripts/canton2any/ccipSendToken.ts",
+    "canton2any:data-and-token": "tsx scripts/canton2any/ccipSendDataAndToken.ts",
+    "canton2any:manual-exec": "tsx scripts/canton2any/manualExecute.ts",
+    "any2canton:data": "tsx scripts/any2canton/ccipSendData.ts",
+    "any2canton:token": "tsx scripts/any2canton/ccipSendToken.ts",
+    "any2canton:data-and-token": "tsx scripts/any2canton/ccipSendDataAndToken.ts",
+    "any2canton:manual-exec": "tsx scripts/any2canton/manualExecute.ts",
+    "faucet:evm-test": "tsx scripts/faucets/evm/dripTESTToken.ts",
+    "check-balance": "tsx scripts/utils/checkBalance.ts",
+    "cct:deploy-burn-mint": "tsx scripts/cct/deployBurnMintTokenPool.ts",
+    "cct:deploy-lock-release": "tsx scripts/cct/deployLockReleaseTokenPool.ts",
+    "cct:set-token": "tsx scripts/cct/setTokenOnTokenPool.ts",
+    "lint": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint --fix .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck"
+  },
+  "dependencies": {
+    "@chainlink/ccip-sdk": "^1.10.3",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.1",
+    "@types/yargs": "^17.0.34",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "3.8.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "8.61.1"
+  }
+}
