@@ -6,10 +6,12 @@
   "indexerUrl": "https://indexer-1.testnet.ccip.chain.link",
   "chainId": "canton:TestNet",
   "packages": {
-    "perPartyRouter": "ccip-runtime",
-    "ccipReceiver": "ccip-receiver",
-    "ccipSender": "ccip-sender"
+    "perPartyRouter": "ccip-runtime-v2",
+    "ccipReceiver": "ccip-receiver-v2",
+    "ccipSender": "ccip-sender-v2"
   },
   "senderInstanceId": "prod-ccipsender",
-  "ccvs": ["0xec1e288bcf8bbf034ac2d31b67f9b15a3f1f828d086c5b9d8fc2866129cd02fe"]
+  "ccvs": [
+    "0x5b92820da106d238d043eedd1556487af175ec1eacd2bfa10c2962f257958dbc"
+  ]
 }
