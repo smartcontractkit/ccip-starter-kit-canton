@@ -8,7 +8,6 @@ import { networkConfig, remoteChain, remoteChainName } from '../../helperConfig'
 import {
   autoExecYargsOption,
   buildCantonToEvmExtraArgs,
-  cantonFeeTokenYargsOption,
   getCantonRouter,
   resolveCantonFeeToken,
 } from '../utils/cantonSend'
@@ -17,7 +16,6 @@ import { printCanton2AnyManualExecHint } from '../utils/manualExec'
 import { encodeMessageData } from '../utils/messageData'
 
 const argv = yargs(hideBin(process.argv))
-  .option('feeToken', cantonFeeTokenYargsOption)
   .option('dataString', {
     type: 'string',
     description: 'Data payload to send (raw UTF-8, or 0x: prefix for ABI-encoded string)',
@@ -55,7 +53,7 @@ async function main() {
     message: {
       receiver: argv.evmReceiver,
       data: encodeMessageData(argv.dataString),
-      feeToken: resolveCantonFeeToken(argv.feeToken, cantonConfig.ccipParty),
+      feeToken: resolveCantonFeeToken(),
       extraArgs: buildCantonToEvmExtraArgs(argv.gasLimit, noExec),
     },
   })

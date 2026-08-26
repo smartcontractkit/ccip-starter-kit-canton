@@ -2,15 +2,13 @@
 
 > **NOTE:** This starter kit represents an educational example to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink’s systems, products, and services to integrate them into your own. This template is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code.
 
-TypeScript scripts for **data**, **token**, and **data + token** CCIP transfers between **Canton testnet** and **Ethereum Sepolia**, built on [`@chainlink/ccip-sdk`](https://www.npmjs.com/package/@chainlink/ccip-sdk) v1.10+.
+TypeScript scripts for **data** CCIP transfers between **Canton testnet** and **Ethereum Sepolia**, built on [`@chainlink/ccip-sdk`](https://www.npmjs.com/package/@chainlink/ccip-sdk) v1.10+.
 
 ## Prerequisites
 
 1. [Node.js](https://nodejs.org/) 20+
 2. A Sepolia EVM account funded with test ETH (Sepolia LINK only if you pass `--feeToken link` on EVM → Canton sends)
-3. A Canton testnet party with:
-   - **Amulet** (default) or **LINK** for Canton → Sepolia CCIP fees
-   - **LINK** (`link-token`) for Canton → Sepolia token transfer demos
+3. A Canton testnet party with **Amulet** for Canton → Sepolia CCIP fees
 4. Canton participant Ledger API access with a validator user (`can_act_as` for your party)
 
 Canton sends and executes use **OIDC bearer-token authentication** and direct ledger submit (same as `ccip-cli` without `--wallet`). No local signing key is required for participant-hosted parties.
@@ -82,29 +80,18 @@ ccip-cli send --rpc <ledger-url> --canton-config canton-config.json ...
 
 ### Canton → Sepolia (source on Canton)
 
-| Script                              | Description                 |
-| ----------------------------------- | --------------------------- |
-| `npm run canton2any:data`           | Data-only transfer          |
-| `npm run canton2any:token`          | LINK token transfer         |
-| `npm run canton2any:data-and-token` | Data + LINK token           |
-| `npm run canton2any:manual-exec`    | Manually execute on Sepolia |
+| Script                           | Description                 |
+| -------------------------------- | --------------------------- |
+| `npm run canton2any:data`        | Data-only transfer          |
+| `npm run canton2any:manual-exec` | Manually execute on Sepolia |
 
-Canton → Sepolia sends pay CCIP fees in **Amulet** by default. Pass `--feeToken link` to pay in CCIP LINK instead.
+Canton → Sepolia sends pay CCIP fees in **Amulet**.
 
 **Examples:**
 
 ```bash
 # Data transfer
 npm run canton2any:data -- --dataString "Hello Sepolia"
-
-# Pay fee in LINK instead of Amulet
-npm run canton2any:data -- --dataString "Hello Sepolia" --feeToken link
-
-# LINK token (0.001 LINK)
-npm run canton2any:token -- --amount 0.001
-
-# Data + token
-npm run canton2any:data-and-token -- --dataString "Hello" --amount 0.001
 
 # Skip auto-execution on Sepolia — run canton2any:manual-exec after Committee Verifier proofs are on the indexer
 npm run canton2any:data -- --dataString "Hello Sepolia" --no-exec
@@ -120,12 +107,10 @@ npm run canton2any:manual-exec -- 0x<messageId>
 
 Sepolia send scripts only need your EVM key and RPC. They use `canton-config.json` **for the default `--cantonReceiver` party** (or pass `--cantonReceiver` explicitly). Full config + ledger auth is required for `any2canton:manual-exec`.
 
-| Script                              | Description                 |
-| ----------------------------------- | --------------------------- |
-| `npm run any2canton:data`           | Data-only transfer          |
-| `npm run any2canton:token`          | TEST token → LINK on Canton |
-| `npm run any2canton:data-and-token` | Data + TEST token           |
-| `npm run any2canton:manual-exec`    | Manually execute on Canton  |
+| Script                           | Description                |
+| -------------------------------- | -------------------------- |
+| `npm run any2canton:data`        | Data-only transfer         |
+| `npm run any2canton:manual-exec` | Manually execute on Canton |
 
 **Examples:**
 
@@ -136,14 +121,8 @@ npm run any2canton:data -- --dataString "Hello Canton"
 # Faster than default source-chain finality: block depth (e.g. 32 block confirmations)
 npm run any2canton:data -- --dataString "Hello Canton" --finality 32
 
-# TEST token (1 TEST mints LINK on Canton after manual exec)
-npm run any2canton:token -- --amount 1
-
 # Pay fee in LINK instead of native ETH
 npm run any2canton:data -- --dataString "Hello Canton" --feeToken link
-
-# Data + token
-npm run any2canton:data-and-token -- --dataString "Hello" --amount 1
 
 # Manual execute on Canton (Sepolia tx hash from send output)
 npm run any2canton:manual-exec -- 0x<sepoliaTxHash>
@@ -154,9 +133,9 @@ npm run any2canton:manual-exec -- 0x<messageId>
 
 ### Balance checks
 
-| Script                  | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| `npm run check-balance` | Show LINK/Amulet (Canton) and LINK/TEST (Sepolia) balances |
+| Script                  | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| `npm run check-balance` | Show Amulet (Canton) and LINK/TEST (Sepolia) balances |
 
 **Examples:**
 
@@ -165,7 +144,7 @@ npm run any2canton:manual-exec -- 0x<messageId>
 npm run check-balance
 
 # Single token
-npm run check-balance -- --chain canton --token link
+npm run check-balance -- --chain canton --token amulet
 npm run check-balance -- --chain sepolia --token test
 
 # Override account
@@ -173,7 +152,7 @@ npm run check-balance -- --chain canton --token amulet --party 'yourParty::1220�
 npm run check-balance -- --chain evm --token link --address 0x...
 
 # List individual Canton holding UTXOs (verbose)
-npm run check-balance -- --chain canton --token link --show-holdings
+npm run check-balance -- --chain canton --token amulet --show-holdings
 ```
 
 ### Faucets (fund before sending)
@@ -185,11 +164,11 @@ npm run check-balance -- --chain canton --token link --show-holdings
 **Example:**
 
 ```bash
-# Sepolia TEST token (for EVM → Canton token sends)
+# Sepolia TEST token
 npm run faucet:evm-test
 ```
 
-For Canton → Sepolia sends, fund your party with **Amulet** for CCIP fees. **LINK** on Canton is only needed for token transfer demos (`canton2any:token`). EVM → Canton TEST transfers mint LINK on Canton only after you run `any2canton:manual-exec` once the message is finalized.
+For Canton → Sepolia sends, fund your party with **Amulet** for CCIP fees.
 
 > **Manual-exec input:** both `*:manual-exec` scripts accept either the **source transaction ID** (Sepolia tx hash / Canton update ID) or the **CCIP message ID** as the first argument. A tx hash and a message ID are both `0x` + 64 hex, so the script tries both lookups and uses whichever resolves — no flag needed. The message-ID path resolves the offRamp and verifications from the CCIP API, so it works from only the destination chain's RPC/config; if the message isn't indexed yet, fall back to the source transaction ID.
 
@@ -199,7 +178,7 @@ Optional flags:
 - `--gasLimit` — ccipReceive gas limit (default `200000`)
 - `--no-exec` — `canton2any` scripts only: skip automatic execution on Sepolia (negates default auto-exec; run `canton2any:manual-exec` after proofs are on the indexer)
 - `--finality` — `any2canton` scripts only: requested source finality (`finalized` or block depth; default `finalized`). Matches ccip-cli `-x finality=…`.
-- `--feeToken link|native` — CCIP fee token on the source chain (default `native`: Amulet on Canton, ETH on Sepolia)
+- `--feeToken link|native` — CCIP fee token on the source chain (default `native`: Amulet on Canton, ETH on Sepolia). On Canton only `native` (Amulet) is supported; `link` is available on Sepolia.
 
 ## Network configuration
 
@@ -236,6 +215,6 @@ ccip-starter-kit-canton/
 | Issue                        | Fix                                                                                                                                                                                                                |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `PermissionDenied` on Canton | Verify `party` matches your validator user; confirm OIDC credentials (`CANTON_AUTH_URL`, `CANTON_CLIENT_ID`, `CANTON_CLIENT_SECRET`) are set and the user has `can_act_as` for that party                          |
-| `no fee-token holdings`      | Fund your Canton party with Amulet (default) or LINK (`--feeToken link`) for Canton → Sepolia sends                                                                                                                |
-| `no token pool registered`   | Verify LINK holdings and token lane registration                                                                                                                                                                   |
+| `no fee-token holdings`      | Fund your Canton party with Amulet for Canton → Sepolia sends                                                                                                                                                      |
+| `no token pool registered`   | Verify token lane registration                                                                                                                                                                                     |
 | Manual exec fails early      | Wait until Committee Verifier proofs are on the [CCIP Explorer](https://ccip.chain.link); for EVM → Canton with default `--finality finalized`, wait until Sepolia finalizes — the SDK error includes a retry hint |

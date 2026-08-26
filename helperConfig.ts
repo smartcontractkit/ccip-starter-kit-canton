@@ -14,21 +14,15 @@ export const networkConfig = {
     chainSelector: '9268731218649498074',
     /** Default EVM receiver for Canton → remote-chain message demos. */
     defaultEvmReceiver: '0xf19DEcEDE7A40a190e6F3457D1d8cAecaD275C54',
-    /** LINK instrument on Canton (BurnMintTokenPool lane). */
-    linkTokenInstrument:
-      'ccipOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551::link-token',
     /** Amulet instrument (DSO admin) — CCIP fee token for Canton → EVM sends. */
     amuletTokenInstrument:
       'DSO::1220f22a8b8f2d813c25b9a684dc4dd52b532a0174d8e73a13cdf2baabfff7518337::Amulet',
-    /** Canton ledger uses 10 decimal places (not EVM 18). */
-    linkTokenDecimals: 10,
     /** Default gas limit for ccipReceive on the EVM destination. */
     defaultGasLimit: 200_000,
     /** 5N Lighthouse explorer for Canton testnet. */
     explorerUrl: 'https://lighthouse.testnet.cantonloop.com',
     ledgerUrlEnv: 'CANTON_LEDGER_URL',
     configPathEnv: 'CANTON_CONFIG_PATH',
-    feeTokenNameLink: 'link',
     feeTokenNameNative: 'native',
   },
   /**
@@ -77,7 +71,3 @@ export const remoteChainName: string = networkInfo(BigInt(remoteChain.chainSelec
 export type FeeTokenChoice =
   | typeof remoteChain.feeTokenNameLink
   | typeof remoteChain.feeTokenNameNative
-
-export type CantonFeeTokenChoice =
-  | typeof networkConfig.canton.feeTokenNameLink
-  | typeof networkConfig.canton.feeTokenNameNative

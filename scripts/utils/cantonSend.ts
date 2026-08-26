@@ -1,32 +1,11 @@
-import {
-  type CantonConfig,
-  formatCantonLinkFeeToken,
-  resolveSenderInstanceId,
-} from '@chainlink/ccip-sdk'
+import { type CantonConfig, resolveSenderInstanceId } from '@chainlink/ccip-sdk'
 
-import { type CantonFeeTokenChoice, networkConfig, remoteChainName } from '../../helperConfig'
+import { networkConfig, remoteChainName } from '../../helperConfig'
 
-/** Resolve Canton CCIP fee token instrument id (Amulet or CCIP LINK). */
-export function resolveCantonFeeToken(feeToken: CantonFeeTokenChoice, ccipParty: string): string {
-  if (feeToken === networkConfig.canton.feeTokenNameLink) {
-    return formatCantonLinkFeeToken(ccipParty)
-  }
-  if (feeToken === networkConfig.canton.feeTokenNameNative) {
-    return networkConfig.canton.amuletTokenInstrument
-  }
-  throw new Error(`Invalid fee token "${feeToken}". Use "link" or "native".`)
+/** Resolve the Canton CCIP fee token instrument id (Amulet). */
+export function resolveCantonFeeToken(): string {
+  return networkConfig.canton.amuletTokenInstrument
 }
-
-/** Yargs option for Canton source fee token (`link` or native Amulet). */
-export const cantonFeeTokenYargsOption = {
-  type: 'string' as const,
-  choices: [
-    networkConfig.canton.feeTokenNameLink,
-    networkConfig.canton.feeTokenNameNative,
-  ] as const,
-  default: networkConfig.canton.feeTokenNameNative,
-  description: 'Fee token on Canton (link or native Amulet; default: native)',
-} as const
 
 /** CCIPSender instance id for Canton source sends (`canton-config.json` `senderInstanceId`). */
 export function getCantonRouter(cantonConfig: CantonConfig): string {

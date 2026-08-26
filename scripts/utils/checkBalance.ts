@@ -21,7 +21,7 @@ const argv = yargs(hideBin(process.argv))
   .option('token', {
     type: 'string',
     choices: BALANCE_TOKENS,
-    description: `link, amulet (Canton only), or test (${remoteChainName} only)`,
+    description: `amulet (Canton only), link or test (${remoteChainName} only)`,
   })
   .option('party', {
     type: 'string',

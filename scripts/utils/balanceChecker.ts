@@ -6,7 +6,7 @@ import { networkConfig, remoteChain, remoteChainName } from '../../helperConfig'
 import { loadCantonConfigWithAuth } from '../canton-helper/cantonConfig'
 
 export const BALANCE_CHAINS = ['canton', 'sepolia', 'evm'] as const
-export const BALANCE_TOKENS = ['link', 'amulet', 'test'] as const
+export const BALANCE_TOKENS = ['amulet', 'link', 'test'] as const
 
 export type BalanceChain = (typeof BALANCE_CHAINS)[number]
 export type BalanceToken = (typeof BALANCE_TOKENS)[number]
@@ -34,29 +34,25 @@ const ERC20_ABI = [
   'function symbol() view returns (string)',
 ]
 
-const CANTON_DECIMALS = networkConfig.canton.linkTokenDecimals
-
 function normalizeChain(chain: BalanceChain): 'canton' | 'sepolia' {
   if (chain === 'evm') return 'sepolia'
   return chain
 }
 
-export function resolveCantonInstrument(token: 'link' | 'amulet'): {
+/** Resolve the Canton Amulet instrument to its instrument id, admin, and id components. */
+export function resolveCantonInstrument(): {
   instrument: string
   admin: string
   id: string
   decimals: number
 } {
-  const instrument =
-    token === 'link'
-      ? networkConfig.canton.linkTokenInstrument
-      : networkConfig.canton.amuletTokenInstrument
+  const instrument = networkConfig.canton.amuletTokenInstrument
   const { admin, id } = parseCantonInstrumentId(instrument)
   return {
     instrument,
     admin,
     id,
-    decimals: CANTON_DECIMALS,
+    decimals: 10,
   }
 }
 
@@ -66,13 +62,18 @@ function resolveEvmTokenAddress(token: 'link' | 'test'): string {
 
 export function tokensForChain(chain: BalanceChain): BalanceToken[] {
   const normalized = normalizeChain(chain)
-  return normalized === 'canton' ? ['link', 'amulet'] : ['link', 'test']
+  return normalized === 'canton' ? ['amulet'] : ['link', 'test']
 }
 
 export function assertTokenSupported(chain: BalanceChain, token: BalanceToken): void {
   const normalized = normalizeChain(chain)
   if (normalized === 'canton' && token === 'test') {
     throw new Error(`Token "test" is only on ${remoteChainName}. Use --chain sepolia --token test.`)
+  }
+  if (normalized === 'canton' && token === 'link') {
+    throw new Error(
+      'Token "link" is not available on Canton. Use --chain sepolia --token link for Sepolia LINK.',
+    )
   }
   if (normalized === 'sepolia' && token === 'amulet') {
     throw new Error('Token "amulet" is only on Canton. Use --chain canton --token amulet.')
@@ -241,12 +242,12 @@ async function getCantonBalanceContext(party?: string): Promise<{
 }
 
 export async function getCantonTokenBalance(
-  token: 'link' | 'amulet',
+  token: 'amulet',
   party?: string,
   ctx?: { canton: CantonChain; account: string },
 ): Promise<BalanceReport> {
   const { canton, account } = ctx ?? (await getCantonBalanceContext(party))
-  const { instrument, admin, id } = resolveCantonInstrument(token)
+  const { instrument, admin, id } = resolveCantonInstrument()
 
   const holdings = await fetchCantonHoldings(canton, account, admin, id)
   const unlocked = holdings.filter((h) => !h.locked).map((h) => h.amount)
@@ -255,7 +256,7 @@ export async function getCantonTokenBalance(
   return {
     chain: 'canton',
     token,
-    symbol: token === 'link' ? 'LINK' : 'Amulet',
+    symbol: 'Amulet',
     account,
     instrumentOrAddress: instrument,
     totalUnlocked: sumDecimalStrings(unlocked),
@@ -301,7 +302,7 @@ export async function getBalance(
   assertTokenSupported(chain, token)
   const normalized = normalizeChain(chain)
   if (normalized === 'canton') {
-    return getCantonTokenBalance(token as 'link' | 'amulet', account)
+    return getCantonTokenBalance(token as 'amulet', account)
   }
   return getSepoliaTokenBalance(token as 'link' | 'test', account)
 }
@@ -320,9 +321,7 @@ export async function getAllBalances(opts?: {
     if (normalized === 'canton') {
       cantonCtx ??= await getCantonBalanceContext(opts?.party)
       for (const token of tokensForChain(chain)) {
-        reports.push(
-          await getCantonTokenBalance(token as 'link' | 'amulet', opts?.party, cantonCtx),
-        )
+        reports.push(await getCantonTokenBalance(token as 'amulet', opts?.party, cantonCtx))
       }
       continue
     }

@@ -6,12 +6,8 @@
   "license": "MIT",
   "scripts": {
     "canton2any:data": "tsx scripts/canton2any/ccipSendData.ts",
-    "canton2any:token": "tsx scripts/canton2any/ccipSendToken.ts",
-    "canton2any:data-and-token": "tsx scripts/canton2any/ccipSendDataAndToken.ts",
     "canton2any:manual-exec": "tsx scripts/canton2any/manualExecute.ts",
     "any2canton:data": "tsx scripts/any2canton/ccipSendData.ts",
-    "any2canton:token": "tsx scripts/any2canton/ccipSendToken.ts",
-    "any2canton:data-and-token": "tsx scripts/any2canton/ccipSendDataAndToken.ts",
     "any2canton:manual-exec": "tsx scripts/any2canton/manualExecute.ts",
     "faucet:evm-test": "tsx scripts/faucets/evm/dripTESTToken.ts",
     "check-balance": "tsx scripts/utils/checkBalance.ts",
