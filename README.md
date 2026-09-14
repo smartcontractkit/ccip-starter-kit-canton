@@ -134,15 +134,19 @@ Sepolia send scripts only need your EVM key and RPC. They use `canton-config.jso
 npm run any2canton:data -- --dataString "Hello Canton"
 
 # Faster than default source-chain finality: block depth (e.g. 32 block confirmations)
+# NOTE: --finality applies to data-only transfers. The TEST ↔ LINK token pool
+# only supports default finality, so do NOT pass --finality to token / data-and-token sends.
 npm run any2canton:data -- --dataString "Hello Canton" --finality 32
 
 # TEST token (1 TEST mints LINK on Canton after manual exec)
+# Do NOT pass --finality here — the LINK token pool only supports default finality.
 npm run any2canton:token -- --amount 1
 
 # Pay fee in LINK instead of native ETH
 npm run any2canton:data -- --dataString "Hello Canton" --feeToken link
 
 # Data + token
+# Do NOT pass --finality here — the LINK token pool only supports default finality.
 npm run any2canton:data-and-token -- --dataString "Hello" --amount 1
 
 # Manual execute on Canton (Sepolia tx hash from send output)
@@ -198,7 +202,7 @@ Optional flags:
 - `--evmReceiver` / `--cantonReceiver` — override default receiver
 - `--gasLimit` — ccipReceive gas limit (default `200000`)
 - `--no-exec` — `canton2any` scripts only: skip automatic execution on Sepolia (negates default auto-exec; run `canton2any:manual-exec` after proofs are on the indexer)
-- `--finality` — `any2canton` scripts only: requested source finality (`finalized` or block depth; default `finalized`). Matches ccip-cli `-x finality=…`.
+- `--finality` — `any2canton` **data-only** sends: requested source finality (`finalized` or block depth; default `finalized`). Matches ccip-cli `-x finality=…`. **Not supported for token or data-and-token sends** on the TEST ↔ LINK token pool, which only supports default finality; passing `--finality` to those scripts is ignored/rejected by the pool.
 - `--feeToken link|native` — CCIP fee token on the source chain (default `native`: Amulet on Canton, ETH on Sepolia)
 
 ## Network configuration
