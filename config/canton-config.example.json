@@ -11,7 +11,5 @@
     "ccipSender": "ccip-sender-v2"
   },
   "senderInstanceId": "prod-ccipsender",
-  "ccvs": [
-    "0x5b92820da106d238d043eedd1556487af175ec1eacd2bfa10c2962f257958dbc"
-  ]
+  "ccvs": ["0x5b92820da106d238d043eedd1556487af175ec1eacd2bfa10c2962f257958dbc"]
 }
