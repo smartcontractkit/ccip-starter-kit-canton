@@ -4,6 +4,10 @@
   "description": "Starter kit for CCIP data and token transfers between Canton testnet and Ethereum Sepolia",
   "type": "module",
   "license": "MIT",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "canton2any:data": "tsx scripts/canton2any/ccipSendData.ts",
     "canton2any:token": "tsx scripts/canton2any/ccipSendToken.ts",
@@ -24,7 +28,7 @@
     "check": "npm run lint && npm run typecheck"
   },
   "dependencies": {
-    "@chainlink/ccip-sdk": "^1.12.0",
+    "@chainlink/ccip-sdk": "^1.15.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.16.0",
     "yargs": "^18.0.0"

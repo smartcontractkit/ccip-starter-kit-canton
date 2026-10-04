@@ -2,18 +2,18 @@
 
 > **NOTE:** This starter kit represents an educational example to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink’s systems, products, and services to integrate them into your own. This template is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code.
 
-TypeScript scripts for **data**, **token**, and **data + token** CCIP transfers between **Canton testnet** and **Ethereum Sepolia**, built on [`@chainlink/ccip-sdk`](https://www.npmjs.com/package/@chainlink/ccip-sdk) v1.10+.
+TypeScript scripts for **data**, **token**, and **data + token** CCIP transfers between **Canton testnet** and **Ethereum Sepolia**, built on [`@chainlink/ccip-sdk`](https://www.npmjs.com/package/@chainlink/ccip-sdk) v1.15+.
 
 ## Prerequisites
 
-1. [Node.js](https://nodejs.org/) 20+
+1. [Node.js](https://nodejs.org/) 22+ (required by `@chainlink/ccip-sdk` transitive dependencies)
 2. A Sepolia EVM account funded with test ETH (Sepolia LINK only if you pass `--feeToken link` on EVM → Canton sends)
 3. A Canton testnet party with:
    - **Amulet** (default) or **LINK** for Canton → Sepolia CCIP fees
    - **LINK** (`link-token`) for Canton → Sepolia token transfer demos
 4. Canton participant Ledger API access with a validator user (`can_act_as` for your party)
 
-Canton sends and executes use **OIDC bearer-token authentication** and direct ledger submit (same as `ccip-cli` without `--wallet`). No local signing key is required for participant-hosted parties.
+Canton sends and executes use **OIDC bearer-token authentication** and direct ledger submit (same as `ccip-cli` without `--wallet`). No local signing key is required for participant-hosted parties. Hardware-wallet signing (Ledger-onboarded external parties) is out of scope here — use [`ccip-cli`](https://github.com/smartcontractkit/ccip-tools-ts) with `--wallet ledger[:<derivation-path>]` for that.
 
 ## Setup
 
@@ -30,47 +30,89 @@ Both example files use **placeholders** for values that depend on your accounts,
 
 Copy `.env.example` to `.env` and replace every placeholder:
 
-| Variable                   | Example placeholder                        | What to set                                                           |
-| -------------------------- | ------------------------------------------ | --------------------------------------------------------------------- |
-| `EVM_PRIVATE_KEY`          | `0xabc123...`                              | Sepolia signer private key (hex, with or without `0x`)                |
-| `ETHEREUM_SEPOLIA_RPC_URL` | `https://eth-sepolia.example.com`          | Your Sepolia JSON-RPC URL                                             |
-| `CANTON_LEDGER_URL`        | `https://participant.example.com/json-api` | Canton participant **JSON Ledger API** URL (not EDS or the validator) |
-| `CANTON_CONFIG_PATH`       | `./config/canton-config.json`              | Path to your Canton config (default is fine)                          |
-| `CANTON_AUTH_URL`          | `https://auth.example.com`                 | OIDC authorization server URL (from your validator setup)             |
-| `CANTON_CLIENT_ID`         | `my-client-id`                             | OIDC client ID for your validator user                                |
-| `CANTON_CLIENT_SECRET`     | _(empty)_                                  | OIDC client secret — scripts fetch a fresh bearer token on each run   |
+| Variable                   | Example placeholder                        | What to set                                                                              |
+| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `EVM_PRIVATE_KEY`          | `0xabc123...`                              | Sepolia signer private key (hex, with or without `0x`)                                   |
+| `ETHEREUM_SEPOLIA_RPC_URL` | `https://eth-sepolia.example.com`          | Your Sepolia JSON-RPC URL                                                                |
+| `CANTON_LEDGER_URL`        | `https://participant.example.com/json-api` | Canton participant **JSON Ledger API** URL (not EDS or the validator)                    |
+| `CANTON_CONFIG_PATH`       | `./config/canton-config.json`              | Path to your Canton config (default is fine)                                             |
+| `CANTON_AUTH_URL`          | `https://auth.example.com`                 | OIDC authorization server URL — fallback only, when no `auth` block is set in the config |
+| `CANTON_CLIENT_ID`         | `my-client-id`                             | OIDC client ID for your validator user                                                   |
+| `CANTON_CLIENT_SECRET`     | _(empty)_                                  | OIDC client secret — set for the client-credentials flow, omit for browser login         |
 
 Optional:
 
-- `CANTON_JWT` — use a pre-fetched bearer token instead of client credentials
+- `CANTON_JWT` — use a pre-fetched bearer token instead of an OIDC flow
 - `CCIP_DEBUG=1` — enable CCIP SDK debug logs
-
-Omit `CANTON_CLIENT_SECRET` only for interactive browser login flows (not typical for this starter kit).
 
 Never commit `.env`, `config/canton-config.json`, OIDC secrets, or private keys to version control. Only `config/canton-config.example.json` and `.env.example` belong in git — both use placeholders.
 
 ### Canton configuration (`canton-config.json`)
 
-Copy `config/canton-config.example.json` to `config/canton-config.json`. **Replace the two placeholder fields**; the rest are pre-configured for the Canton CCIP testnet lane:
+Copy `config/canton-config.example.json` to `config/canton-config.json`. **Replace the three placeholder fields**; the rest are pre-configured for the Canton CCIP testnet lane:
 
-| Field                                                                                  | Placeholder?                                        | What to set                                                                                                                                     |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `party`                                                                                | Yes — `myParty::1220...`                            | Your ledger party ID (must match your validator user). Used as Canton sender and default `any2canton` receiver.                                 |
-| `transferInstructionUrl`                                                               | Yes — `https://validator.example.com/api/validator` | Your validator's **transfer-instruction API** (Amulet fee transfers and token metadata). Depends on which validator hosts your party — not EDS. |
-| `edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, `senderInstanceId`, `packages`, `chainId` | No — real testnet values                            | Shared CCIP deployment constants; leave as in the example unless you target a different environment.                                            |
+| Field                                                              | Placeholder?                                        | What to set                                                                                                                                     |
+| ------------------------------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `party`                                                            | Yes — `myParty::1220...`                            | Your ledger party ID (must match your validator user). Used as Canton sender and default `any2canton` receiver.                                 |
+| `transferInstructionUrl`                                           | Yes — `https://validator.example.com/api/validator` | Your validator's **transfer-instruction API** (Amulet fee transfers and token metadata). Depends on which validator hosts your party — not EDS. |
+| `auth.authUrl`                                                     | Yes — `https://auth.example.com`                    | OIDC authorization server URL (from your validator setup). Credentials come from `.env`.                                                        |
+| `edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, `packages`, `chainId` | No — real testnet values                            | Shared CCIP deployment constants; leave as in the example unless you target a different environment.                                            |
 
 Chainlink provides shared CCIP endpoints (`edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, etc.) pre-filled in the example config. You supply your own `CANTON_LEDGER_URL`, validator user credentials, and `transferInstructionUrl`.
 
-Bearer token resolution is from `.env` (see below), not from this file.
+The `auth` block in this file selects the auth scheme and carries the non-secret OIDC parameters; credentials (`CANTON_CLIENT_ID` / `CANTON_CLIENT_SECRET`) are resolved from `.env` (see below). When no `auth` block is present, auth falls back to `.env` variables alone.
 
 ### Canton authentication
 
 Canton uses standard [OpenID Connect (OIDC)](https://openid.net/connect/). Any compatible identity provider works (Okta, Keycloak, Microsoft Azure, Auth0, and others); local or development nodes may use a local user without an external IdP. See the [Canton validator documentation](https://docs.canton.network/) for setup.
 
-Scripts obtain a bearer token automatically via **OIDC client credentials** (`CANTON_CLIENT_ID` + `CANTON_CLIENT_SECRET` in `.env`). Resolution order:
+Authentication is handled by the [`@chainlink/ccip-sdk`](https://www.npmjs.com/package/@chainlink/ccip-sdk) OAuth 2.0 providers, configured via the `auth` block in `canton-config.json` (same as `ccip-cli`). The `type` field selects the scheme; `CANTON_CLIENT_ID` / `CANTON_CLIENT_SECRET` in `.env` fill in any credentials the block omits:
 
-1. `CANTON_JWT` in `.env` (explicit override)
-2. Client credentials → fresh token from your OIDC provider (`CANTON_AUTH_URL`)
+| Auth type           | Config `auth` block                               | `.env` credentials                          | Flow                                                                                     |
+| ------------------- | ------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `authorizationCode` | `{ "type": "authorizationCode", "authUrl": "…" }` | `CANTON_CLIENT_ID`                          | Interactive browser login (authorization code + PKCE) — **default for this starter kit** |
+| `clientCredentials` | `{ "type": "clientCredentials", "authUrl": "…" }` | `CANTON_CLIENT_ID` + `CANTON_CLIENT_SECRET` | Machine-to-machine token grant (CI/CD, no browser)                                       |
+| `static`            | _(none — set `jwt` in the block or `CANTON_JWT`)_ | `CANTON_JWT`                                | Pre-fetched bearer token (no refresh)                                                    |
+
+Without an `auth` block, the scheme is picked from `.env` alone: `CANTON_JWT` → `static`; `CANTON_AUTH_URL` + `CANTON_CLIENT_ID` + `CANTON_CLIENT_SECRET` → `clientCredentials`; `CANTON_AUTH_URL` + `CANTON_CLIENT_ID` → `authorizationCode`.
+
+#### `authorizationCode` (browser login)
+
+With the default `auth` block (`authorizationCode`) and `CANTON_CLIENT_ID` set (and no `CANTON_CLIENT_SECRET`), the first ledger-connected script run:
+
+1. Starts a local callback server on `http://localhost:8400/callback`
+2. Opens your default browser at the OIDC provider's login page
+3. Waits for you to log in and approve access (2-minute timeout)
+4. Exchanges the authorization code (with PKCE) for a bearer token
+5. Prints `Canton bearer token obtained via OIDC authorization code (browser login).` and proceeds
+
+The token is refreshed automatically per request for the life of the script run; when it expires, the SDK refreshes it via the `refresh_token` grant (or re-runs the browser flow if refresh is unavailable).
+
+The callback server listens on `http://localhost:8400/callback` by default. Override it with `callbackUrl` in the `auth` block (e.g. when port 8400 is occupied) — the value must be a redirect URI registered on your OIDC client:
+
+```json
+"auth": {
+  "type": "authorizationCode",
+  "authUrl": "https://auth.example.com",
+  "callbackUrl": "http://localhost:8401/callback"
+}
+```
+
+```bash
+npm run check-balance -- --chain canton --token link
+# → Waiting for authentication on http://localhost:8400/callback
+# → Opening browser for login…
+# → If the browser does not open, visit: https://auth.example.com/...
+# → Canton bearer token obtained via OIDC authorization code (browser login).
+```
+
+#### `clientCredentials` (machine-to-machine)
+
+Set `"type": "clientCredentials"` in the `auth` block and `CANTON_CLIENT_ID` + `CANTON_CLIENT_SECRET` in `.env` for a non-interactive token grant — useful in CI or when your IdP client is confidential. The SDK fetches and caches the token, refreshing it per request as needed.
+
+#### `static` (pre-fetched token)
+
+Set `CANTON_JWT` to skip OIDC entirely and use a token you obtained out of band (e.g. from your validator's token endpoint). No refresh — re-run with a fresh token when it expires.
 
 The participant submits commands on behalf of `party` via `submit-and-wait-for-transaction` — matching:
 
@@ -223,7 +265,7 @@ ccip-starter-kit-canton/
 ├── config/
 │   └── canton-config.example.json
 ├── scripts/
-│   ├── canton-helper/        # Config loader and JWT refresh
+│   ├── canton-helper/        # Config loader and OIDC auth (SDK providers)
 │   ├── faucets/              # Sepolia TEST drip
 │   ├── utils/                # Chain loaders, balances, data payload encoding
 │   ├── canton2any/           # Canton source scripts
@@ -237,11 +279,11 @@ ccip-starter-kit-canton/
 
 ## Troubleshooting
 
-| Issue                        | Fix                                                                                                                                                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PermissionDenied` on Canton | Verify `party` matches your validator user; confirm OIDC credentials (`CANTON_AUTH_URL`, `CANTON_CLIENT_ID`, `CANTON_CLIENT_SECRET`) are set and the user has `can_act_as` for that party                          |
-| `no fee-token holdings`      | Fund your Canton party with Amulet (default) or LINK (`--feeToken link`) for Canton → Sepolia sends                                                                                                                |
-| `no token pool registered`   | Verify LINK holdings and token lane registration                                                                                                                                                                   |
-| Manual exec fails early      | Wait until Committee Verifier proofs are on the [CCIP Explorer](https://ccip.chain.link); for EVM → Canton with default `--finality finalized`, wait until Sepolia finalizes — the SDK error includes a retry hint |
+| Issue                        | Fix                                                                                                                                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PermissionDenied` on Canton | Verify `party` matches your validator user; confirm OIDC settings (`CANTON_AUTH_URL`, `CANTON_CLIENT_ID`, and `CANTON_CLIENT_SECRET` for the client-credentials flow) are set and the user has `can_act_as` for that party |
+| `no fee-token holdings`      | Fund your Canton party with Amulet (default) or LINK (`--feeToken link`) for Canton → Sepolia sends                                                                                                                        |
+| `no token pool registered`   | Verify LINK holdings and token lane registration                                                                                                                                                                           |
+| Manual exec fails early      | Wait until Committee Verifier proofs are on the [CCIP Explorer](https://ccip.chain.link); for EVM → Canton with default `--finality finalized`, wait until Sepolia finalizes — the SDK error includes a retry hint         |
 
-Disclaimer: Please note, this repo contains community examples only  — these are not Chainlink products or services and are not supported or maintained by Chainlink. This code represents an example of using a Chainlink product or service, and is intended for demonstration and educational purposes only. It is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, may not have been audited, and may omit checks or error handling. Each party intending to use this example code does so entirely at their own risk and must perform its own audits, security and code review, key management, and testing before any production deployment and ensure the operation and performance of such code matches expectations. Neither Chainlink Labs nor the Chainlink Foundation deploys, operates, monitors, maintains or endorses any deployment of this code. Note that this is not a Chainlink product, feature or service, and there are no commitments made with respect to the code, including compatibility with future Chainlink releases. You should not rely on this code without first conducting your own technical, engineering, and security review. This code is also outside the scope of any Chainlink bug bounty programs. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for outcomes due to errors in this example or how it is deployed or operated, or liable for any resulting claims or damages. Use of the Chainlink Network is subject to the Chainlink Foundation [Terms of Service](https://chain.link/terms), which provides important information and disclosures. By using this code, you acknowledge and agree to these terms.
+Disclaimer: Please note, this repo contains community examples only — these are not Chainlink products or services and are not supported or maintained by Chainlink. This code represents an example of using a Chainlink product or service, and is intended for demonstration and educational purposes only. It is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, may not have been audited, and may omit checks or error handling. Each party intending to use this example code does so entirely at their own risk and must perform its own audits, security and code review, key management, and testing before any production deployment and ensure the operation and performance of such code matches expectations. Neither Chainlink Labs nor the Chainlink Foundation deploys, operates, monitors, maintains or endorses any deployment of this code. Note that this is not a Chainlink product, feature or service, and there are no commitments made with respect to the code, including compatibility with future Chainlink releases. You should not rely on this code without first conducting your own technical, engineering, and security review. This code is also outside the scope of any Chainlink bug bounty programs. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for outcomes due to errors in this example or how it is deployed or operated, or liable for any resulting claims or damages. Use of the Chainlink Network is subject to the Chainlink Foundation [Terms of Service](https://chain.link/terms), which provides important information and disclosures. By using this code, you acknowledge and agree to these terms.

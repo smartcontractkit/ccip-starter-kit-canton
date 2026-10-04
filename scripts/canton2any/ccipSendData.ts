@@ -9,7 +9,6 @@ import {
   autoExecYargsOption,
   buildCantonToEvmExtraArgs,
   cantonFeeTokenYargsOption,
-  getCantonRouter,
   resolveCantonFeeToken,
 } from '../utils/cantonSend'
 import { getCantonSendContext, printCcipRequest } from '../utils/chains'
@@ -49,7 +48,7 @@ async function main() {
   )
 
   const request = await canton.sendMessage({
-    router: getCantonRouter(cantonConfig),
+    router: '',
     destChainSelector: destSelector,
     wallet,
     message: {
