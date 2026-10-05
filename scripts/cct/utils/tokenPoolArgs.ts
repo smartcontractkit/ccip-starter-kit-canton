@@ -11,9 +11,12 @@ import {
 
 export type TokenPoolKind = 'burnMint' | 'lockRelease'
 
+/** Template IDs in `#package-name:Module:Entity` form — the participant
+ * resolves the name to the latest vetted package at submission time.
+ */
 const TEMPLATE_IDS: Record<TokenPoolKind, string> = {
-  burnMint: '#ccip-burn-mint-token-pool:CCIP.BurnMintTokenPool:BurnMintTokenPool',
-  lockRelease: '#ccip-lock-release-token-pool:CCIP.LockReleaseTokenPool:LockReleaseTokenPool',
+  burnMint: '#ccip-burn-mint-token-pool-v2:CCIP.BurnMintTokenPoolV2:BurnMintTokenPool',
+  lockRelease: '#ccip-lock-release-token-pool-v2:CCIP.LockReleaseTokenPoolV2:LockReleaseTokenPool',
 }
 
 const ENTITY_NAMES: Record<TokenPoolKind, string> = {
