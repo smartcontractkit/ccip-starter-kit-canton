@@ -12,15 +12,7 @@ import {
   matchesTemplateEntity,
   submitLedgerCommands,
 } from './ledgerSubmit'
-
-/**
- * Template IDs in `#package-name:Module:Entity` form — the participant
- * resolves the name to the latest vetted package at submission time.
- * (EDS disclosures carry hash-form templateIds; those identify the
- * disclosed contract and are not used in commands.)
- */
-const TAR_TEMPLATE_ID = '#ccip-core-v2:CCIP.CoreV2.TokenAdminRegistry:TokenAdminRegistry'
-const TOKEN_CONFIG_TEMPLATE_ID = '#ccip-core-v2:CCIP.CoreV2.TokenAdminRegistry:TokenConfig'
+import { TAR_TEMPLATE_ID, TOKEN_CONFIG_TEMPLATE_ID } from './templateIds'
 
 export interface DisclosedContractPayload {
   templateId: string
