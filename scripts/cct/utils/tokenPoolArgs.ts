@@ -8,12 +8,13 @@ import {
   encodeDamlInt64,
   indefiniteTransferTimeout,
 } from './ledgerSubmit'
+import { BURN_MINT_POOL_TEMPLATE_ID, LOCK_RELEASE_POOL_TEMPLATE_ID } from './templateIds'
 
 export type TokenPoolKind = 'burnMint' | 'lockRelease'
 
 const TEMPLATE_IDS: Record<TokenPoolKind, string> = {
-  burnMint: '#ccip-burn-mint-token-pool:CCIP.BurnMintTokenPool:BurnMintTokenPool',
-  lockRelease: '#ccip-lock-release-token-pool:CCIP.LockReleaseTokenPool:LockReleaseTokenPool',
+  burnMint: BURN_MINT_POOL_TEMPLATE_ID,
+  lockRelease: LOCK_RELEASE_POOL_TEMPLATE_ID,
 }
 
 const ENTITY_NAMES: Record<TokenPoolKind, string> = {

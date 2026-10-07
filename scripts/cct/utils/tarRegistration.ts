@@ -2,6 +2,7 @@ import type { CantonChain, CantonConfig, CantonInstrumentId } from '@chainlink/c
 
 import { ccipHostedAddresses } from './ccipHostedAddresses'
 import {
+  emptyChoiceContext,
   extractCreatedContractId,
   extractEventsFromTransaction,
   extractExerciseResultField,
@@ -11,20 +12,7 @@ import {
   matchesTemplateEntity,
   submitLedgerCommands,
 } from './ledgerSubmit'
-
-const TAR_TEMPLATE_ID_FALLBACK =
-  '#ccip-tokenadminregistry:CCIP.TokenAdminRegistry:TokenAdminRegistry'
-
-function resolveTarTemplateId(disclosures: DisclosedContractPayload[]): string {
-  const tarDisclosure =
-    disclosures.find((d) => matchesTemplateEntity(d.templateId, 'TokenAdminRegistry')) ??
-    disclosures[0]
-  if (!tarDisclosure?.templateId) {
-    return TAR_TEMPLATE_ID_FALLBACK
-  }
-  // Prod-testnet expects package hash, not `#ccip-tokenadminregistry` alias.
-  return tarDisclosure.templateId
-}
+import { TAR_TEMPLATE_ID, TOKEN_CONFIG_TEMPLATE_ID } from './templateIds'
 
 export interface DisclosedContractPayload {
   templateId: string
@@ -217,17 +205,6 @@ async function refreshTarDisclosuresAfterPropose(
   }
 }
 
-function tokenConfigTemplateId(tarTemplateId: string): string {
-  if (tarTemplateId.startsWith('#')) {
-    return tarTemplateId.replace(
-      ':TokenAdminRegistry:TokenAdminRegistry',
-      ':TokenAdminRegistry:TokenConfig',
-    )
-  }
-  // ACS TemplateFilter on prod-testnet expects package names, not hashes.
-  return '#ccip-core:CCIP.TokenAdminRegistry:TokenConfig'
-}
-
 async function findTokenConfigCid(
   canton: CantonChain,
   party: string,
@@ -278,9 +255,15 @@ async function findTokenConfigCid(
   return undefined
 }
 
-function mapDisclosedContracts(contracts: DisclosedContractPayload[]): DisclosedContractPayload[] {
+/**
+ * Project EDS disclosures into ledger `disclosedContracts` entries.
+ * `templateId` is optional (validation only) and omitted — the EDS
+ * hash-form value is not used in submissions.
+ */
+function mapDisclosedContracts(
+  contracts: DisclosedContractPayload[],
+): Array<{ contractId: string; createdEventBlob: string; synchronizerId: string }> {
   return contracts.map((dc) => ({
-    templateId: dc.templateId,
     contractId: dc.contractId,
     createdEventBlob: dc.createdEventBlob,
     synchronizerId: dc.synchronizerId,
@@ -295,9 +278,6 @@ export async function registerTokenPoolOnTar(
     input.cantonConfig.edsUrl,
     tarAddress,
   )
-  const tarTemplateId = resolveTarTemplateId(disclosedContracts)
-  const tokenConfigTemplate = tokenConfigTemplateId(tarTemplateId)
-
   const updateIds: string[] = []
   let tokenConfigCid = input.tokenConfigCid?.trim() ?? ''
 
@@ -308,7 +288,7 @@ export async function registerTokenPoolOnTar(
         input.canton,
         input.poolAdmin,
         input.instrumentId,
-        tokenConfigTemplate,
+        TOKEN_CONFIG_TEMPLATE_ID,
       )) ?? tokenConfigCid
     if (!tokenConfigCid) {
       throw new Error('No active TokenConfig found on ledger for this instrument')
@@ -325,7 +305,7 @@ export async function registerTokenPoolOnTar(
       commands: [
         {
           ExerciseCommand: {
-            templateId: tarTemplateId,
+            templateId: TAR_TEMPLATE_ID,
             contractId: tarContractId,
             choice: 'ProposeAdministrator',
             choiceArgument: {
@@ -335,6 +315,7 @@ export async function registerTokenPoolOnTar(
                 id: input.instrumentId.id,
               },
               newAdmin: input.poolAdmin,
+              context: emptyChoiceContext(),
               caller: input.proposeCaller,
             },
           },
@@ -378,7 +359,7 @@ export async function registerTokenPoolOnTar(
         commands: [
           {
             ExerciseCommand: {
-              templateId: tarTemplateId,
+              templateId: TAR_TEMPLATE_ID,
               contractId: tarContractId,
               choice: 'AcceptAdminRole',
               choiceArgument: {
@@ -387,6 +368,7 @@ export async function registerTokenPoolOnTar(
                   admin: input.instrumentId.admin,
                   id: input.instrumentId.id,
                 },
+                context: emptyChoiceContext(),
                 caller: input.poolAdmin,
               },
             },
@@ -404,7 +386,7 @@ export async function registerTokenPoolOnTar(
         input.canton,
         input.poolAdmin,
         input.instrumentId,
-        tokenConfigTemplate,
+        TOKEN_CONFIG_TEMPLATE_ID,
         acceptResponse.transaction,
         tokenConfigCid,
       )
@@ -420,7 +402,7 @@ export async function registerTokenPoolOnTar(
           input.canton,
           input.poolAdmin,
           input.instrumentId,
-          tokenConfigTemplate,
+          TOKEN_CONFIG_TEMPLATE_ID,
         )) ?? tokenConfigCid
       if (!tokenConfigCid) throw err
       console.log(`   tokenConfigCid: ${tokenConfigCid}`)
@@ -432,7 +414,7 @@ export async function registerTokenPoolOnTar(
     commands: [
       {
         ExerciseCommand: {
-          templateId: tarTemplateId,
+          templateId: TAR_TEMPLATE_ID,
           contractId: tarContractId,
           choice: 'SetPool',
           choiceArgument: {
@@ -445,6 +427,7 @@ export async function registerTokenPoolOnTar(
               poolOwner: input.poolOwner,
               poolInstanceId: input.poolInstanceId,
             },
+            context: emptyChoiceContext(),
             caller: input.poolAdmin,
           },
         },
