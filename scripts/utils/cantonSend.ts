@@ -1,8 +1,4 @@
-import {
-  type CantonConfig,
-  formatCantonLinkFeeToken,
-  resolveSenderInstanceId,
-} from '@chainlink/ccip-sdk'
+import { formatCantonLinkFeeToken } from '@chainlink/ccip-sdk'
 
 import { type CantonFeeTokenChoice, networkConfig, remoteChainName } from '../../helperConfig'
 
@@ -27,11 +23,6 @@ export const cantonFeeTokenYargsOption = {
   default: networkConfig.canton.feeTokenNameNative,
   description: 'Fee token on Canton (link or native Amulet; default: native)',
 } as const
-
-/** CCIPSender instance id for Canton source sends (`canton-config.json` `senderInstanceId`). */
-export function getCantonRouter(cantonConfig: CantonConfig): string {
-  return resolveSenderInstanceId(cantonConfig)
-}
 
 /**
  * Yargs boolean for destination auto-execution.
