@@ -14,3 +14,4 @@ export const BURN_MINT_POOL_TEMPLATE_ID =
   '#ccip-burn-mint-token-pool-v2:CCIP.BurnMintTokenPoolV2:BurnMintTokenPool'
 export const LOCK_RELEASE_POOL_TEMPLATE_ID =
   '#ccip-lock-release-token-pool-v2:CCIP.LockReleaseTokenPoolV2:LockReleaseTokenPool'
+export const RATE_LIMITER_TEMPLATE_ID = '#ccip-rate-limiter-v2:CCIP.RateLimiterV2:RateLimiter'
