@@ -5,7 +5,7 @@ import { hideBin } from 'yargs/helpers'
 
 import {
   BALANCE_CHAINS,
-  BALANCE_TOKENS,
+  assertTokenSupported,
   getAllBalances,
   getBalance,
   printBalanceReport,
@@ -20,8 +20,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .option('token', {
     type: 'string',
-    choices: BALANCE_TOKENS,
-    description: `link, amulet (Canton only), or test (${remoteChainName} only)`,
+    description: `link, amulet (Canton), test (${remoteChainName}), or a full Canton instrument ID (party::fingerprint::tokenId) with --chain canton`,
   })
   .option('party', {
     type: 'string',
@@ -42,6 +41,9 @@ const argv = yargs(hideBin(process.argv))
     }
     if (args.token && !args.chain) {
       throw new Error('Pass --chain when using --token, or omit both to show all balances.')
+    }
+    if (args.chain && args.token) {
+      assertTokenSupported(args.chain, args.token)
     }
     return true
   })

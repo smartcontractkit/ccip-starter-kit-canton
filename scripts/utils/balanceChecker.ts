@@ -7,9 +7,16 @@ import { loadCantonConfigWithAuth } from '../canton-helper/cantonConfig'
 
 export const BALANCE_CHAINS = ['canton', 'sepolia', 'evm'] as const
 export const BALANCE_TOKENS = ['link', 'amulet', 'test'] as const
+/** Named Canton tokens with configured instruments; any instrument ID is also accepted. */
+export const CANTON_NAMED_TOKENS = ['link', 'amulet'] as const
 
 export type BalanceChain = (typeof BALANCE_CHAINS)[number]
 export type BalanceToken = (typeof BALANCE_TOKENS)[number]
+export type CantonNamedToken = (typeof CANTON_NAMED_TOKENS)[number]
+
+function isCantonNamedToken(token: string): token is CantonNamedToken {
+  return (CANTON_NAMED_TOKENS as readonly string[]).includes(token)
+}
 
 export interface CantonHoldingRow {
   contractId: string
@@ -19,7 +26,8 @@ export interface CantonHoldingRow {
 
 export interface BalanceReport {
   chain: 'canton' | 'sepolia'
-  token: BalanceToken
+  /** Named token (link/amulet/test) or the full instrument ID for custom Canton queries. */
+  token: string
   symbol: string
   account: string
   instrumentOrAddress: string
@@ -41,22 +49,30 @@ function normalizeChain(chain: BalanceChain): 'canton' | 'sepolia' {
   return chain
 }
 
-export function resolveCantonInstrument(token: 'link' | 'amulet'): {
+/**
+ * Resolve a Canton token reference — a named token ('link' | 'amulet') or any full
+ * instrument ID (`party::fingerprint::tokenId`).
+ */
+export function resolveCantonInstrument(token: string): {
   instrument: string
   admin: string
   id: string
   decimals: number
+  symbol: string
 } {
-  const instrument =
-    token === 'link'
+  const named = isCantonNamedToken(token)
+  const instrument = named
+    ? token === 'link'
       ? networkConfig.canton.linkTokenInstrument
       : networkConfig.canton.amuletTokenInstrument
+    : token
   const { admin, id } = parseCantonInstrumentId(instrument)
   return {
     instrument,
     admin,
     id,
     decimals: CANTON_DECIMALS,
+    symbol: named ? (token === 'link' ? 'LINK' : 'Amulet') : id,
   }
 }
 
@@ -69,14 +85,31 @@ export function tokensForChain(chain: BalanceChain): BalanceToken[] {
   return normalized === 'canton' ? ['link', 'amulet'] : ['link', 'test']
 }
 
-export function assertTokenSupported(chain: BalanceChain, token: BalanceToken): void {
+export function assertTokenSupported(chain: BalanceChain, token: string): void {
   const normalized = normalizeChain(chain)
-  if (normalized === 'canton' && token === 'test') {
-    throw new Error(`Token "test" is only on ${remoteChainName}. Use --chain sepolia --token test.`)
+  if (normalized === 'canton') {
+    if (isCantonNamedToken(token)) return
+    if (token === 'test') {
+      throw new Error(
+        `Token "test" is only on ${remoteChainName}. Use --chain sepolia --token test.`,
+      )
+    }
+    try {
+      parseCantonInstrumentId(token)
+    } catch {
+      throw new Error(
+        `Invalid Canton token or instrument ID "${token}". Use a named token (link, amulet) or a full instrument ID (party::fingerprint::tokenId).`,
+      )
+    }
+    return
   }
-  if (normalized === 'sepolia' && token === 'amulet') {
+  if (token === 'link' || token === 'test') return
+  if (token === 'amulet') {
     throw new Error('Token "amulet" is only on Canton. Use --chain canton --token amulet.')
   }
+  throw new Error(
+    `Token "${token}" is not supported on ${remoteChainName}. Use --token link or --token test.`,
+  )
 }
 
 function unwrapDamlValue(value: unknown): unknown {
@@ -241,12 +274,12 @@ async function getCantonBalanceContext(party?: string): Promise<{
 }
 
 export async function getCantonTokenBalance(
-  token: 'link' | 'amulet',
+  token: string,
   party?: string,
   ctx?: { canton: CantonChain; account: string },
 ): Promise<BalanceReport> {
   const { canton, account } = ctx ?? (await getCantonBalanceContext(party))
-  const { instrument, admin, id } = resolveCantonInstrument(token)
+  const { instrument, admin, id, symbol } = resolveCantonInstrument(token)
 
   const holdings = await fetchCantonHoldings(canton, account, admin, id)
   const unlocked = holdings.filter((h) => !h.locked).map((h) => h.amount)
@@ -255,7 +288,7 @@ export async function getCantonTokenBalance(
   return {
     chain: 'canton',
     token,
-    symbol: token === 'link' ? 'LINK' : 'Amulet',
+    symbol,
     account,
     instrumentOrAddress: instrument,
     totalUnlocked: sumDecimalStrings(unlocked),
@@ -295,13 +328,13 @@ export async function getSepoliaTokenBalance(
 
 export async function getBalance(
   chain: BalanceChain,
-  token: BalanceToken,
+  token: string,
   account?: string,
 ): Promise<BalanceReport> {
   assertTokenSupported(chain, token)
   const normalized = normalizeChain(chain)
   if (normalized === 'canton') {
-    return getCantonTokenBalance(token as 'link' | 'amulet', account)
+    return getCantonTokenBalance(token, account)
   }
   return getSepoliaTokenBalance(token as 'link' | 'test', account)
 }
@@ -320,9 +353,7 @@ export async function getAllBalances(opts?: {
     if (normalized === 'canton') {
       cantonCtx ??= await getCantonBalanceContext(opts?.party)
       for (const token of tokensForChain(chain)) {
-        reports.push(
-          await getCantonTokenBalance(token as 'link' | 'amulet', opts?.party, cantonCtx),
-        )
+        reports.push(await getCantonTokenBalance(token, opts?.party, cantonCtx))
       }
       continue
     }
