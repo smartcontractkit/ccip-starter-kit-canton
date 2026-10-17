@@ -81,8 +81,12 @@ async function main() {
     console.log(`   Update: ${cantonExplorerTx(updateId)}`)
   }
   console.log('')
+  console.log('Next step: enable a cross-chain lane (remote pool + token are required):')
   console.log(
-    'Next step: enable a cross-chain lane (rate limiters + ApplyChainUpdates on the pool).',
+    `   npm run cct:enable-lane -- --kind <burnMint|lockRelease> --poolInstanceId "${argv.poolInstanceId}" \\`,
+  )
+  console.log(
+    `      --poolOwner "${poolOwner}" --remotePool <0xREMOTE_POOL> --remoteToken <0xREMOTE_TOKEN>`,
   )
 }
 

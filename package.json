@@ -22,6 +22,7 @@
     "cct:deploy-burn-mint": "tsx scripts/cct/deployBurnMintTokenPool.ts",
     "cct:deploy-lock-release": "tsx scripts/cct/deployLockReleaseTokenPool.ts",
     "cct:set-token": "tsx scripts/cct/setTokenOnTokenPool.ts",
+    "cct:enable-lane": "tsx scripts/cct/enableLane.ts",
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint --fix .",
     "typecheck": "tsc --noEmit",
