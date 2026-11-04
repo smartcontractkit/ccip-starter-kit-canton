@@ -200,9 +200,9 @@ npm run any2canton:manual-exec -- 0x<messageId>
 
 ### Balance checks
 
-| Script                  | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| `npm run check-balance` | Show LINK/Amulet (Canton) and LINK/TEST (Sepolia) balances |
+| Script                  | Description                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run check-balance` | Show LINK/Amulet (Canton) and LINK/TEST (Sepolia) balances, or any Canton instrument by ID |
 
 **Examples:**
 
@@ -213,6 +213,9 @@ npm run check-balance
 # Single token
 npm run check-balance -- --chain canton --token link
 npm run check-balance -- --chain sepolia --token test
+
+# Any Canton instrument by full ID (party::fingerprint::tokenId)
+npm run check-balance -- --chain canton --token 'issuer::1220…::my-token'
 
 # Override account
 npm run check-balance -- --chain canton --token amulet --party 'yourParty::1220…'
