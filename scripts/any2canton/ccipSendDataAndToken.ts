@@ -29,14 +29,19 @@ const argv = yargs(hideBin(process.argv))
     description: 'Data payload to send alongside the token transfer',
     demandOption: true,
   })
+  .option('token', {
+    type: 'string',
+    description: `EVM token address on ${remoteChainName} (defaults to the demo TEST token)`,
+    default: remoteChain.ccipTestTokenAddress,
+  })
   .option('amount', {
     type: 'string',
-    description: 'Amount of TEST token to send (human-readable, e.g. 1)',
+    description: 'Amount of token to send (human-readable, e.g. 1)',
     demandOption: true,
   })
   .option('cantonReceiver', {
     type: 'string',
-    description: 'Canton party that receives minted LINK (defaults to canton-config party)',
+    description: 'Canton party that receives the minted tokens (defaults to canton-config party)',
   })
   .option('gasLimit', {
     type: 'number',
@@ -56,7 +61,7 @@ async function main() {
   const wallet = await getEvmWallet()
   const destSelector = BigInt(networkConfig.canton.chainSelector)
 
-  const tokenAddress = remoteChain.ccipTestTokenAddress
+  const tokenAddress = argv.token
   const token = new Contract(tokenAddress, ERC20_ABI, provider)
   const decimals: number = await token.decimals()
   const symbol: string = await token.symbol()
@@ -67,7 +72,7 @@ async function main() {
     `📧🪙 Sending data + ${argv.amount} ${symbol} from ${remoteChainName} → Canton: "${argv.dataString}"`,
   )
   console.log(`   Receiver party: ${receiver}`)
-  console.log('   LINK is minted on Canton only after manual execution.')
+  console.log(`   ${symbol} is minted on Canton only after manual execution.`)
 
   const request = await sepolia.sendMessage({
     router: remoteChain.ccipRouterAddress,

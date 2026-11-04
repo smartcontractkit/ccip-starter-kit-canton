@@ -17,9 +17,15 @@ import { printCanton2AnyManualExecHint } from '../utils/manualExec'
 
 const argv = yargs(hideBin(process.argv))
   .option('feeToken', cantonFeeTokenYargsOption)
+  .option('token', {
+    type: 'string',
+    description:
+      'Canton instrument ID to send (party::fingerprint::tokenId; defaults to the CCIP LINK instrument)',
+    default: networkConfig.canton.linkTokenInstrument,
+  })
   .option('amount', {
     type: 'string',
-    description: 'Amount of LINK to send (human-readable, e.g. 0.001)',
+    description: 'Amount of token to send (human-readable, e.g. 0.001)',
     demandOption: true,
   })
   .option('evmReceiver', {
@@ -41,7 +47,7 @@ async function main() {
   const amount = parseUnits(argv.amount, networkConfig.canton.linkTokenDecimals)
   const noExec = !argv.exec
 
-  console.log(`🪙 Sending ${argv.amount} LINK from Canton → ${remoteChainName}`)
+  console.log(`🪙 Sending ${argv.amount} of ${argv.token} from Canton → ${remoteChainName}`)
   console.log(
     noExec
       ? `   Executor: none (--no-exec) — run canton2any:manual-exec on ${remoteChainName} after proofs are on the indexer`
@@ -57,7 +63,7 @@ async function main() {
       feeToken: resolveCantonFeeToken(argv.feeToken, cantonConfig.ccipParty),
       tokenAmounts: [
         {
-          token: networkConfig.canton.linkTokenInstrument,
+          token: argv.token,
           amount,
         },
       ],

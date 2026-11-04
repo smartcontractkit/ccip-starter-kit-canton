@@ -13,7 +13,7 @@ export const networkConfig = {
   canton: {
     chainSelector: '9268731218649498074',
     /** Default EVM receiver for Canton → remote-chain message demos. */
-    defaultEvmReceiver: '0xf19DEcEDE7A40a190e6F3457D1d8cAecaD275C54',
+    defaultEvmReceiver: '0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA',
     /** LINK instrument on Canton (BurnMintTokenPool lane). */
     linkTokenInstrument:
       'ccipOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551::link-token',

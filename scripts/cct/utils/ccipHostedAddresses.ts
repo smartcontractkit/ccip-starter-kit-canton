@@ -16,6 +16,9 @@ export const ccipHostedAddresses = {
   feeQuoter:
     process.env.CANTON_FEE_QUOTER_ADDRESS?.trim() ??
     'feequoter-koyox@ccipOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551',
+  committeeVerifier:
+    process.env.CANTON_COMMITTEE_VERIFIER_ADDRESS?.trim() ??
+    'committeeverifier-pttst@ccvOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551',
 } as const
 
 export function rawInstanceAddress(unpack: string): { unpack: string } {
