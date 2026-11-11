@@ -1,6 +1,7 @@
-import { type CantonChain, parseCantonInstrumentId } from '@chainlink/ccip-sdk'
+import type { CantonChain } from '@chainlink/ccip-sdk'
 import { Contract, formatUnits } from 'ethers'
 
+import { parseCantonInstrumentId } from './cantonSend'
 import { getCantonChain, getEvmProvider, getEvmWallet } from './chains'
 import { networkConfig, remoteChain, remoteChainName } from '../../helperConfig'
 import { loadCantonConfigWithAuth } from '../canton-helper/cantonConfig'
@@ -51,7 +52,7 @@ function normalizeChain(chain: BalanceChain): 'canton' | 'sepolia' {
 
 /**
  * Resolve a Canton token reference — a named token ('link' | 'amulet') or any full
- * instrument ID (`party::fingerprint::tokenId`).
+ * instrument ID (`tokenId@party`).
  */
 export function resolveCantonInstrument(token: string): {
   instrument: string
@@ -98,7 +99,7 @@ export function assertTokenSupported(chain: BalanceChain, token: string): void {
       parseCantonInstrumentId(token)
     } catch {
       throw new Error(
-        `Invalid Canton token or instrument ID "${token}". Use a named token (link, amulet) or a full instrument ID (party::fingerprint::tokenId).`,
+        `Invalid Canton token or instrument ID "${token}". Use a named token (link, amulet) or a full instrument ID (tokenId@party).`,
       )
     }
     return
@@ -191,34 +192,48 @@ async function fetchCantonHoldings(
   admin: string,
   instrumentId: string,
 ): Promise<CantonHoldingRow[]> {
-  const { offset } = await canton.provider.getLedgerEnd()
-  const responses = await canton.provider.getActiveContracts({
-    activeAtOffset: offset,
-    eventFormat: {
-      filtersByParty: {
-        [party]: {
-          cumulative: [
-            {
-              identifierFilter: {
-                InterfaceFilter: {
-                  value: {
-                    interfaceId: '#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding',
-                    includeInterfaceView: true,
-                    includeCreatedEventBlob: false,
+  // Ledger API reads go through the provider's `ledgerApi`
+  // pass-through (wire-format resource + body), same as the SDK's own client.
+  const { offset } = await canton.provider.request({
+    method: 'ledgerApi',
+    params: { requestMethod: 'get', resource: '/v2/state/ledger-end' },
+  })
+  const responses = await canton.provider.request({
+    method: 'ledgerApi',
+    params: {
+      requestMethod: 'post',
+      resource: '/v2/state/active-contracts',
+      body: {
+        activeAtOffset: offset,
+        eventFormat: {
+          filtersByParty: {
+            [party]: {
+              cumulative: [
+                {
+                  identifierFilter: {
+                    InterfaceFilter: {
+                      value: {
+                        interfaceId:
+                          '#splice-api-token-holding-v1:Splice.Api.Token.HoldingV1:Holding',
+                        includeInterfaceView: true,
+                        includeCreatedEventBlob: false,
+                      },
+                    },
                   },
                 },
-              },
+              ],
             },
-          ],
+          },
+          verbose: true,
         },
       },
-      verbose: true,
     },
   })
 
   const rows: CantonHoldingRow[] = []
 
-  for (const response of responses) {
+  const contractResponses = (responses as unknown[]) ?? []
+  for (const response of contractResponses) {
     if (!response || typeof response !== 'object') continue
     const entry = (response as Record<string, unknown>).contractEntry
     if (!entry || typeof entry !== 'object' || !('JsActiveContract' in entry)) continue

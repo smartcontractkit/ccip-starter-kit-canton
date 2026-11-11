@@ -233,32 +233,44 @@ export async function enableLane(input: EnableLaneInput): Promise<EnableLaneResu
 
 /** Resolve the pool's contract ID from the Active Contract Set by instanceId@poolOwner. */
 async function findPoolContractId(input: EnableLaneInput): Promise<string> {
-  const { offset } = await input.canton.provider.getLedgerEnd()
-  const responses = await input.canton.provider.getActiveContracts({
-    activeAtOffset: offset,
-    eventFormat: {
-      filtersByParty: {
-        [input.poolOwner]: {
-          cumulative: [
-            {
-              identifierFilter: {
-                TemplateFilter: {
-                  value: {
-                    templateId: tokenPoolTemplateId(input.kind),
-                    includeCreatedEventBlob: false,
+  // Ledger API reads go through the provider's `ledgerApi` pass-through.
+  const { offset } = await input.canton.provider.request({
+    method: 'ledgerApi',
+    params: { requestMethod: 'get', resource: '/v2/state/ledger-end' },
+  })
+  const responses = await input.canton.provider.request({
+    method: 'ledgerApi',
+    params: {
+      requestMethod: 'post',
+      resource: '/v2/state/active-contracts',
+      body: {
+        activeAtOffset: offset,
+        eventFormat: {
+          filtersByParty: {
+            [input.poolOwner]: {
+              cumulative: [
+                {
+                  identifierFilter: {
+                    TemplateFilter: {
+                      value: {
+                        templateId: tokenPoolTemplateId(input.kind),
+                        includeCreatedEventBlob: false,
+                      },
+                    },
                   },
                 },
-              },
+              ],
             },
-          ],
+          },
+          verbose: true,
         },
       },
-      verbose: true,
     },
   })
 
   const poolAddress = poolRawAddress(input.poolInstanceId, input.poolOwner)
-  for (const response of responses) {
+  const contractResponses = (responses as unknown[]) ?? []
+  for (const response of contractResponses) {
     const entry = (response as Record<string, unknown>)?.contractEntry as
       | Record<string, unknown>
       | undefined

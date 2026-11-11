@@ -8,7 +8,6 @@ import {
   type AuthorizationCodeAuthConfig,
   type CantonAuthConfig,
   type CantonConfig,
-  type CantonWallet,
   CantonAuthType,
   CantonStaticProvider,
   buildCantonAuthorizationRequest,
@@ -18,10 +17,29 @@ import {
   validateCantonAuthorizationCallback,
 } from '@chainlink/ccip-sdk'
 
+import { JsonRpcProvider } from './cantonProvider'
 import { networkConfig } from '../../helperConfig'
 
+/**
+ * The kit's canton-config.json shape: the SDK's {@link CantonConfig} overrides
+ * plus the kit-only connectivity fields (`party`, `chainId`, `jwt`,
+ * `httpVersion`) consumed by {@link buildCantonProvider}.
+ */
+export type KitCantonConfig = CantonConfig & {
+  /** User ledger party for actAs, ACS queries, and transaction visibility. */
+  party: string
+  /** CCIP operator party — required by this kit's config validation. */
+  ccipParty: string
+  /** CAIP-2 chain ID, e.g. `canton:TestNet` — handed to the JsonRpcProvider. */
+  chainId?: string
+  /** HTTP protocol version for Ledger API requests: `'2'` (default) or `'1'`. */
+  httpVersion?: '1' | '2'
+  /** Resolved JWT (string or refreshable getter) — set by loadCantonConfigWithAuth. */
+  jwt?: string | (() => Promise<string>)
+}
+
 /** Always required in canton-config.json (JWT is resolved separately). */
-const REQUIRED_CONFIG_FIELDS = ['party', 'ccipParty', 'edsUrl', 'transferInstructionUrl'] as const
+const REQUIRED_CONFIG_FIELDS = ['party', 'ccipParty'] as const
 
 /** Default local redirect URI for the authorization-code callback server. */
 const DEFAULT_CALLBACK_URL = 'http://localhost:8400/callback'
@@ -61,9 +79,9 @@ function readConfigFile(configPath?: string): { path: string; parsed: Record<str
  * Load canton-config.json fields (without resolving JWT).
  * Prefer {@link loadCantonConfigWithAuth} for scripts that connect to the ledger.
  */
-export function loadCantonConfig(configPath?: string): CantonConfig {
+export function loadCantonConfig(configPath?: string): KitCantonConfig {
   const { parsed } = readConfigFile(configPath)
-  return parsed as unknown as CantonConfig
+  return parsed as unknown as KitCantonConfig
 }
 
 /** Default Canton receiver for EVM → Canton sends (`--cantonReceiver` overrides). */
@@ -73,9 +91,11 @@ export function resolveDefaultCantonReceiver(override?: string): string {
 }
 
 /**
- * Build a Canton wallet for JWT-authenticated direct submit (same as ccip-cli without `--wallet`).
+ * Build the Canton wallet: `{ party }` — the provider submits directly to the
+ * Ledger API with the resolved JWT, so the authenticated user must have
+ * `actAs` rights for `party`.
  */
-export function loadCantonWallet(config: CantonConfig): CantonWallet {
+export function loadCantonWallet(config: KitCantonConfig): { party: string } {
   if (!config.jwt) {
     throw new Error(
       'Canton wallet requires a resolved JWT. Call loadCantonConfigWithAuth() before loadCantonWallet().',
@@ -284,9 +304,9 @@ async function resolveCantonTokenGetter(
 /**
  * Load canton-config.json and resolve JWT before connecting to the ledger.
  */
-export async function loadCantonConfigWithAuth(configPath?: string): Promise<CantonConfig> {
+export async function loadCantonConfigWithAuth(configPath?: string): Promise<KitCantonConfig> {
   const { parsed } = readConfigFile(configPath)
-  const config = parsed as unknown as CantonConfig
+  const config = parsed as unknown as KitCantonConfig
 
   const auth = resolveCantonAuthConfig(readAuthBlock(parsed))
   config.jwt = await resolveCantonTokenGetter(auth)
@@ -298,6 +318,51 @@ export async function loadCantonConfigWithAuth(configPath?: string): Promise<Can
   }
 
   return config
+}
+
+/**
+ * Build the kit's Canton JSON API provider from a resolved config, the same
+ * way ccip-cli does: the provider owns Ledger API connectivity and the JWT;
+ * the SDK only sees the provider plus its operational overrides.
+ */
+export async function buildCantonProvider(
+  config: KitCantonConfig,
+  ledgerUrl: string,
+): Promise<JsonRpcProvider> {
+  if (!config.jwt) {
+    throw new Error(
+      'Canton provider requires a resolved JWT. Call loadCantonConfigWithAuth() first.',
+    )
+  }
+  return JsonRpcProvider.fromUrl(
+    config.chainId ?? 'canton:TestNet',
+    ledgerUrl,
+    config.jwt,
+    config.party,
+    config.httpVersion ?? '2',
+  )
+}
+
+/**
+ * The SDK-facing config: the caller-built provider plus the operational
+ * overrides from canton-config.json (`ccipParty`, `externalEdsUrlsByOwner`,
+ * `externalTokenStandardUrlsByOwner`, `indexerUrl`, `ccvs`, …). Kit-only
+ * connectivity fields (`party`, `chainId`, `jwt`, `httpVersion`) are dropped.
+ */
+export function toSdkCantonConfig(
+  config: KitCantonConfig,
+  provider: JsonRpcProvider,
+): CantonConfig {
+  return {
+    provider,
+    ccipParty: config.ccipParty,
+    disableAutomaticContractCreation: config.disableAutomaticContractCreation,
+    externalEdsUrlsByOwner: config.externalEdsUrlsByOwner,
+    externalTokenStandardUrlsByOwner: config.externalTokenStandardUrlsByOwner,
+    indexerUrl: config.indexerUrl,
+    defaultSendGasLimit: config.defaultSendGasLimit,
+    ccvs: config.ccvs,
+  }
 }
 
 /** Extract the `auth` block from a parsed canton-config.json, if present. */

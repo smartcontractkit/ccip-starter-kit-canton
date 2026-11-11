@@ -1,18 +1,18 @@
 import 'dotenv/config'
 
-import { parseCantonInstrumentId } from '@chainlink/ccip-sdk'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { poolRawAddress } from './utils/ccipHostedAddresses'
 import { loadCantonConfigWithAuth } from '../canton-helper/cantonConfig'
+import { parseCantonInstrumentId } from '../utils/cantonSend'
 import { cantonExplorerTx, getCantonChain } from '../utils/chains'
 import { registerTokenPoolOnTar } from './utils/tarRegistration'
 
 const argv = yargs(hideBin(process.argv))
   .option('instrument', {
     type: 'string',
-    description: 'Canton instrument ID (party::fingerprint::tokenId)',
+    description: 'Canton instrument ID (tokenId@party)',
     demandOption: true,
   })
   .option('poolInstanceId', {

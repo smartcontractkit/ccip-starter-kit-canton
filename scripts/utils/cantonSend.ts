@@ -1,6 +1,14 @@
-import { formatCantonLinkFeeToken } from '@chainlink/ccip-sdk'
+import { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
+import { formatCantonLinkFeeToken } from '@chainlink/ccip-sdk/dist/canton/defaults.js'
 
 import { type CantonFeeTokenChoice, networkConfig, remoteChainName } from '../../helperConfig'
+
+/**
+ * Parse a Canton instrument ID (`tokenId@party` format).
+ */
+export function parseCantonInstrumentId(instrument: string): CantonInstrumentId {
+  return CantonInstrumentId.fromString(instrument)
+}
 
 /** Resolve Canton CCIP fee token instrument id (Amulet or CCIP LINK). */
 export function resolveCantonFeeToken(feeToken: CantonFeeTokenChoice, ccipParty: string): string {

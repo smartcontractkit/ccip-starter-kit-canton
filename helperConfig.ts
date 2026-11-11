@@ -14,12 +14,12 @@ export const networkConfig = {
     chainSelector: '9268731218649498074',
     /** Default EVM receiver for Canton → remote-chain message demos. */
     defaultEvmReceiver: '0x8C244f0B2164E6A3BED74ab429B0ebd661Bb14CA',
-    /** LINK instrument on Canton (BurnMintTokenPool lane). */
+    /** LINK instrument on Canton (BurnMintTokenPool lane), `id@party` format. */
     linkTokenInstrument:
-      'ccipOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551::link-token',
+      'link-token@ccipOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551',
     /** Amulet instrument (DSO admin) — CCIP fee token for Canton → EVM sends. */
     amuletTokenInstrument:
-      'DSO::1220f22a8b8f2d813c25b9a684dc4dd52b532a0174d8e73a13cdf2baabfff7518337::Amulet',
+      'Amulet@DSO::1220f22a8b8f2d813c25b9a684dc4dd52b532a0174d8e73a13cdf2baabfff7518337',
     /** Canton ledger uses 10 decimal places (not EVM 18). */
     linkTokenDecimals: 10,
     /** Default gas limit for ccipReceive on the EVM destination. */

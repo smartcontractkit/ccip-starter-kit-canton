@@ -20,7 +20,7 @@ const argv = yargs(hideBin(process.argv))
   .option('token', {
     type: 'string',
     description:
-      'Canton instrument ID to send (party::fingerprint::tokenId; defaults to the CCIP LINK instrument)',
+      'Canton instrument ID to send (tokenId@party; defaults to the CCIP LINK instrument)',
     default: networkConfig.canton.linkTokenInstrument,
   })
   .option('amount', {

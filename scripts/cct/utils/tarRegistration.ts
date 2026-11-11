@@ -1,4 +1,5 @@
-import type { CantonChain, CantonConfig, CantonInstrumentId } from '@chainlink/ccip-sdk'
+import type { CantonChain } from '@chainlink/ccip-sdk'
+import type { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
 
 import { ccipHostedAddresses } from './ccipHostedAddresses'
 import {
@@ -13,6 +14,7 @@ import {
   submitLedgerCommands,
 } from './ledgerSubmit'
 import { TAR_TEMPLATE_ID, TOKEN_CONFIG_TEMPLATE_ID } from './templateIds'
+import type { KitCantonConfig } from '../../canton-helper/cantonConfig'
 
 export interface DisclosedContractPayload {
   templateId: string
@@ -28,7 +30,7 @@ interface TarDisclosureBundle {
 
 export interface RegisterTokenPoolOnTarInput {
   canton: CantonChain
-  cantonConfig: CantonConfig
+  cantonConfig: KitCantonConfig
   instrumentId: CantonInstrumentId
   poolInstanceId: string
   poolOwner: string
@@ -38,6 +40,15 @@ export interface RegisterTokenPoolOnTarInput {
   tokenConfigCid?: string
   /** Skip AcceptAdminRole when step 2 already completed (resume at SetPool). */
   skipAccept?: boolean
+}
+
+/**
+ * EDS base URL for TAR disclosures: the config's `edsUrl` when present, else
+ * the SDK's testnet default (the only network this kit targets).
+ */
+function resolveEdsUrl(config: KitCantonConfig): string {
+  const edsUrl = (config as { edsUrl?: string }).edsUrl?.trim()
+  return edsUrl || 'https://eds.testnet.ccip.chain.link'
 }
 
 export interface RegisterTokenPoolOnTarResult {
@@ -211,31 +222,43 @@ async function findTokenConfigCid(
   instrumentId: CantonInstrumentId,
   tokenConfigTemplate: string,
 ): Promise<string | undefined> {
-  const { offset } = await canton.provider.getLedgerEnd()
-  const responses = await canton.provider.getActiveContracts({
-    activeAtOffset: offset,
-    eventFormat: {
-      filtersByParty: {
-        [party]: {
-          cumulative: [
-            {
-              identifierFilter: {
-                TemplateFilter: {
-                  value: {
-                    templateId: tokenConfigTemplate,
-                    includeCreatedEventBlob: false,
+  // Ledger API reads go through the provider's `ledgerApi` pass-through.
+  const { offset } = await canton.provider.request({
+    method: 'ledgerApi',
+    params: { requestMethod: 'get', resource: '/v2/state/ledger-end' },
+  })
+  const responses = await canton.provider.request({
+    method: 'ledgerApi',
+    params: {
+      requestMethod: 'post',
+      resource: '/v2/state/active-contracts',
+      body: {
+        activeAtOffset: offset,
+        eventFormat: {
+          filtersByParty: {
+            [party]: {
+              cumulative: [
+                {
+                  identifierFilter: {
+                    TemplateFilter: {
+                      value: {
+                        templateId: tokenConfigTemplate,
+                        includeCreatedEventBlob: false,
+                      },
+                    },
                   },
                 },
-              },
+              ],
             },
-          ],
+          },
+          verbose: true,
         },
       },
-      verbose: true,
     },
   })
 
-  for (const response of responses) {
+  const contractResponses = (responses as unknown[]) ?? []
+  for (const response of contractResponses) {
     const entry = (response as Record<string, unknown>)?.contractEntry as
       | Record<string, unknown>
       | undefined
@@ -275,7 +298,7 @@ export async function registerTokenPoolOnTar(
 ): Promise<RegisterTokenPoolOnTarResult> {
   const tarAddress = ccipHostedAddresses.tokenAdminRegistry
   let { tarContractId, disclosedContracts } = await fetchTarDisclosures(
-    input.cantonConfig.edsUrl,
+    resolveEdsUrl(input.cantonConfig),
     tarAddress,
   )
   const updateIds: string[] = []
@@ -333,7 +356,7 @@ export async function registerTokenPoolOnTar(
     tokenConfigCid = proposeResult.tokenConfigCid ?? ''
 
     const tarState = await refreshTarDisclosuresAfterPropose(
-      input.cantonConfig.edsUrl,
+      resolveEdsUrl(input.cantonConfig),
       tarAddress,
       proposeResponse.transaction,
       { tarContractId, disclosedContracts },
