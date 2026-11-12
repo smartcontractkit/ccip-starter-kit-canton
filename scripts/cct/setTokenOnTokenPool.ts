@@ -65,7 +65,6 @@ async function main() {
 
   const result = await registerTokenPoolOnTar({
     canton,
-    cantonConfig,
     instrumentId,
     poolInstanceId: argv.poolInstanceId,
     poolOwner,

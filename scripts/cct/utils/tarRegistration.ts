@@ -14,7 +14,6 @@ import {
   submitLedgerCommands,
 } from './ledgerSubmit'
 import { TAR_TEMPLATE_ID, TOKEN_CONFIG_TEMPLATE_ID } from './templateIds'
-import type { KitCantonConfig } from '../../canton-helper/cantonConfig'
 
 export interface DisclosedContractPayload {
   templateId: string
@@ -30,7 +29,6 @@ interface TarDisclosureBundle {
 
 export interface RegisterTokenPoolOnTarInput {
   canton: CantonChain
-  cantonConfig: KitCantonConfig
   instrumentId: CantonInstrumentId
   poolInstanceId: string
   poolOwner: string
@@ -43,12 +41,12 @@ export interface RegisterTokenPoolOnTarInput {
 }
 
 /**
- * EDS base URL for TAR disclosures: the config's `edsUrl` when present, else
- * the SDK's testnet default (the only network this kit targets).
+ * EDS base URL for TAR disclosures, resolved the same way the SDK resolves
+ * its own EDS clients: per-owner map (network defaults + config overrides)
+ * keyed by the CCIP owner party.
  */
-function resolveEdsUrl(config: KitCantonConfig): string {
-  const edsUrl = (config as { edsUrl?: string }).edsUrl?.trim()
-  return edsUrl || 'https://eds.testnet.ccip.chain.link'
+function resolveEdsUrl(canton: CantonChain): string {
+  return canton.edsClientProvider.urlFor(canton.ccipParty)
 }
 
 export interface RegisterTokenPoolOnTarResult {
@@ -298,7 +296,7 @@ export async function registerTokenPoolOnTar(
 ): Promise<RegisterTokenPoolOnTarResult> {
   const tarAddress = ccipHostedAddresses.tokenAdminRegistry
   let { tarContractId, disclosedContracts } = await fetchTarDisclosures(
-    resolveEdsUrl(input.cantonConfig),
+    resolveEdsUrl(input.canton),
     tarAddress,
   )
   const updateIds: string[] = []
@@ -356,7 +354,7 @@ export async function registerTokenPoolOnTar(
     tokenConfigCid = proposeResult.tokenConfigCid ?? ''
 
     const tarState = await refreshTarDisclosuresAfterPropose(
-      resolveEdsUrl(input.cantonConfig),
+      resolveEdsUrl(input.canton),
       tarAddress,
       proposeResponse.transaction,
       { tarContractId, disclosedContracts },
