@@ -1,9 +1,22 @@
 import type { CantonChain } from '@chainlink/ccip-sdk'
 
-type LedgerCommands = Parameters<CantonChain['provider']['submitAndWaitForTransaction']>[0]
-type LedgerSubmitResponse = Awaited<
-  ReturnType<CantonChain['provider']['submitAndWaitForTransaction']>
->
+/**
+ * Commands payload for the JSON Ledger API `/v2/commands/submit-and-wait-for-transaction`
+ * endpoint (same shape the SDK's own submit path uses).
+ */
+export type LedgerCommands = {
+  commands: unknown[]
+  commandId?: string
+  actAs?: string[]
+  readAs?: string[]
+  disclosedContracts?: unknown[]
+  synchronizerId?: string
+  packageIdSelectionPreference?: string[]
+  deduplicationPeriod?: Record<string, unknown>
+}
+
+/** Response from `/v2/commands/submit-and-wait-for-transaction`. */
+export type LedgerSubmitResponse = { transaction: unknown }
 
 /** Encode a Daml INT64 for the JSON Ledger API (string, not JSON number). */
 export function encodeDamlInt64(value: bigint | number): string {
@@ -32,8 +45,13 @@ async function resolveSynchronizerId(canton: CantonChain): Promise<string | unde
   const fromEnv = process.env.CANTON_SYNCHRONIZER_ID?.trim()
   if (fromEnv) return fromEnv
 
-  const synchronizers = await canton.provider.getConnectedSynchronizers()
-  return synchronizers[0]?.synchronizerId
+  // Connected-synchronizers is a plain Ledger API GET through the provider's
+  // `ledgerApi` pass-through.
+  const { connectedSynchronizers } = await canton.provider.request({
+    method: 'ledgerApi',
+    params: { requestMethod: 'get', resource: '/v2/state/connected-synchronizers' },
+  })
+  return connectedSynchronizers?.[0]?.synchronizerId
 }
 
 /** Enrich JsCommands with fields required by prod-testnet JSON Ledger API. */
@@ -56,7 +74,19 @@ export async function submitLedgerCommands(
   canton: CantonChain,
   commands: LedgerCommands,
 ): Promise<LedgerSubmitResponse> {
-  return canton.provider.submitAndWaitForTransaction(await enrichLedgerCommands(canton, commands))
+  const enriched = await enrichLedgerCommands(canton, commands)
+  // Direct submission goes through the provider's `ledgerApi`
+  // pass-through against `/v2/commands/submit-and-wait-for-transaction`, which
+  // returns the full transaction (events visible to the actAs party).
+  const response = await canton.provider.request({
+    method: 'ledgerApi',
+    params: {
+      requestMethod: 'post',
+      resource: '/v2/commands/submit-and-wait-for-transaction',
+      body: { commands: enriched },
+    },
+  })
+  return response as LedgerSubmitResponse
 }
 
 export function templateEntityName(templateId: string): string {

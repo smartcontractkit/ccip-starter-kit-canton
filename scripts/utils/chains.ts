@@ -1,16 +1,16 @@
 import 'dotenv/config'
 
-import {
-  type CCIPRequest,
-  type CantonConfig,
-  type Logger,
-  CantonChain,
-  EVMChain,
-} from '@chainlink/ccip-sdk'
+import { type CCIPRequest, type Logger, CantonChain, EVMChain } from '@chainlink/ccip-sdk'
 import { JsonRpcProvider, Wallet } from 'ethers'
 
 import { networkConfig, remoteChain } from '../../helperConfig'
-import { loadCantonConfigWithAuth, loadCantonWallet } from '../canton-helper/cantonConfig'
+import {
+  type KitCantonConfig,
+  buildCantonProvider,
+  loadCantonConfigWithAuth,
+  loadCantonWallet,
+  toSdkCantonConfig,
+} from '../canton-helper/cantonConfig'
 
 const silentSdkLogger: Logger = {
   debug() {},
@@ -47,19 +47,26 @@ export async function getEvmProvider(): Promise<JsonRpcProvider> {
   return new JsonRpcProvider(requireEnv(remoteChain.rpcUrlEnv))
 }
 
-export async function getCantonChain(cantonConfig?: CantonConfig) {
+export async function getCantonChain(cantonConfig?: KitCantonConfig) {
   const config = cantonConfig ?? (await loadCantonConfigWithAuth())
   const ledgerUrl = requireEnv(networkConfig.canton.ledgerUrlEnv)
-  return CantonChain.fromUrl(ledgerUrl, { cantonConfig: config, logger: getSdkLogger() })
+  // The caller builds the provider (connectivity + JWT) and
+  // hands it to CantonChain.fromProvider; the SDK applies its per-network
+  // defaults, overridable via the cantonConfig passthrough fields.
+  const provider = await buildCantonProvider(config, ledgerUrl)
+  return CantonChain.fromProvider(provider, {
+    cantonConfig: toSdkCantonConfig(config, provider),
+    logger: getSdkLogger(),
+  })
 }
 
-export async function getCantonWallet(cantonConfig?: CantonConfig) {
+export async function getCantonWallet(cantonConfig?: KitCantonConfig) {
   const config = cantonConfig ?? (await loadCantonConfigWithAuth())
   return loadCantonWallet(config)
 }
 
 /** Load JWT once, then build Canton chain + wallet for source sends. */
-export async function getCantonSendContext(cantonConfig?: CantonConfig) {
+export async function getCantonSendContext(cantonConfig?: KitCantonConfig) {
   const config = cantonConfig ?? (await loadCantonConfigWithAuth())
   return {
     cantonConfig: config,

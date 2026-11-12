@@ -5,14 +5,9 @@
     "type": "authorizationCode",
     "authUrl": "https://auth.example.com"
   },
-  "edsUrl": "https://eds.testnet.ccip.chain.link",
-  "transferInstructionUrl": "https://validator.example.com/api/validator",
   "indexerUrl": "https://indexer-1.testnet.ccip.chain.link",
   "chainId": "canton:TestNet",
-  "packages": {
-    "perPartyRouter": "ccip-runtime-v2",
-    "ccipReceiver": "ccip-receiver-v2",
-    "ccipSender": "ccip-sender-v2"
-  },
-  "ccvs": ["0x5b92820da106d238d043eedd1556487af175ec1eacd2bfa10c2962f257958dbc"]
+  "ccvs": [
+    "committeeverifier-pttst@ccvOwner::1220e382f4e57b0815e6be737006e381e6b7de448e06bd033ece6df498017879f551"
+  ]
 }

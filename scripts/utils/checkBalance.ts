@@ -20,7 +20,7 @@ const argv = yargs(hideBin(process.argv))
   })
   .option('token', {
     type: 'string',
-    description: `link, amulet (Canton), test (${remoteChainName}), or a full Canton instrument ID (party::fingerprint::tokenId) with --chain canton`,
+    description: `link, amulet (Canton), test (${remoteChainName}), or a full Canton instrument ID (tokenId@party) with --chain canton`,
   })
   .option('party', {
     type: 'string',

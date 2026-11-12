@@ -1,4 +1,5 @@
-import type { CantonChain, CantonInstrumentId } from '@chainlink/ccip-sdk'
+import type { CantonChain } from '@chainlink/ccip-sdk'
+import type { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
 
 import { poolRawAddress } from './ccipHostedAddresses'
 import { extractCreatedContractId, extractUpdateId, submitLedgerCommands } from './ledgerSubmit'

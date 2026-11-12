@@ -49,16 +49,15 @@ Never commit `.env`, `config/canton-config.json`, OIDC secrets, or private keys 
 
 ### Canton configuration (`canton-config.json`)
 
-Copy `config/canton-config.example.json` to `config/canton-config.json`. **Replace the three placeholder fields**; the rest are pre-configured for the Canton CCIP testnet lane:
+Copy `config/canton-config.example.json` to `config/canton-config.json`. **Replace the two placeholder fields**; the rest are pre-configured for the Canton CCIP testnet lane:
 
-| Field                                                              | Placeholder?                                        | What to set                                                                                                                                     |
-| ------------------------------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `party`                                                            | Yes — `myParty::1220...`                            | Your ledger party ID (must match your validator user). Used as Canton sender and default `any2canton` receiver.                                 |
-| `transferInstructionUrl`                                           | Yes — `https://validator.example.com/api/validator` | Your validator's **transfer-instruction API** (Amulet fee transfers and token metadata). Depends on which validator hosts your party — not EDS. |
-| `auth.authUrl`                                                     | Yes — `https://auth.example.com`                    | OIDC authorization server URL (from your validator setup). Credentials come from `.env`.                                                        |
-| `edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, `packages`, `chainId` | No — real testnet values                            | Shared CCIP deployment constants; leave as in the example unless you target a different environment.                                            |
+| Field                                        | Placeholder?                     | What to set                                                                                                                                               |
+| -------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `party`                                      | Yes — `myParty::1220...`         | Your ledger party ID (must match your validator user). Used as Canton sender and default `any2canton` receiver.                                           |
+| `auth.authUrl`                               | Yes — `https://auth.example.com` | OIDC authorization server URL (from your validator setup). Credentials come from `.env`.                                                                  |
+| `ccipParty`, `indexerUrl`, `ccvs`, `chainId` | No — real testnet values         | Shared CCIP deployment constants; leave as in the example unless you target a different environment. `ccvs` entries are raw `instanceId@party` addresses. |
 
-Chainlink provides shared CCIP endpoints (`edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, etc.) pre-filled in the example config. You supply your own `CANTON_LEDGER_URL`, validator user credentials, and `transferInstructionUrl`.
+Chainlink provides shared CCIP endpoints (`ccipParty`, `indexerUrl`, `ccvs`, etc.) pre-filled in the example config. You supply your own `CANTON_LEDGER_URL` and validator user credentials. EDS endpoints are resolved from the SDK's per-network defaults; override per owner with `externalEdsUrlsByOwner` if you host your own EDS.
 
 The `auth` block in this file selects the auth scheme and carries the non-secret OIDC parameters; credentials (`CANTON_CLIENT_ID` / `CANTON_CLIENT_SECRET`) are resolved from `.env` (see below). When no `auth` block is present, auth falls back to `.env` variables alone.
 
@@ -252,7 +251,7 @@ Optional flags:
 
 ## Network configuration
 
-Lane defaults live in [`helperConfig.ts`](helperConfig.ts) (selectors, router, token addresses, explorers, default `--gasLimit` of `200000`). Shared Canton CCIP deployment fields (`edsUrl`, `indexerUrl`, `ccipParty`, `ccvs`, etc.) are pre-filled in [`config/canton-config.example.json`](config/canton-config.example.json); you only customize `party` and `transferInstructionUrl` there.
+Lane defaults live in [`helperConfig.ts`](helperConfig.ts) (selectors, router, token addresses, explorers, default `--gasLimit` of `200000`). Shared Canton CCIP deployment fields (`ccipParty`, `indexerUrl`, `ccvs`, etc.) are pre-filled in [`config/canton-config.example.json`](config/canton-config.example.json); you only customize `party` and the `auth` block there.
 
 - **Canton testnet** selector: `9268731218649498074`
 - **Sepolia** selector: `16015286601757825753`
@@ -268,7 +267,7 @@ ccip-starter-kit-canton/
 ├── config/
 │   └── canton-config.example.json
 ├── scripts/
-│   ├── canton-helper/        # Config loader and OIDC auth (SDK providers)
+│   ├── canton-helper/        # Config loader, OIDC auth, and the Canton JSON API provider
 │   ├── faucets/              # Sepolia TEST drip
 │   ├── utils/                # Chain loaders, balances, data payload encoding
 │   ├── canton2any/           # Canton source scripts
