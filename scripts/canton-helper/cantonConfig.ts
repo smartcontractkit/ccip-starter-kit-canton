@@ -9,6 +9,7 @@ import {
   type CantonAuthConfig,
   type CantonConfig,
   CantonAuthType,
+  CantonJsonRpcProvider,
   CantonStaticProvider,
   buildCantonAuthorizationRequest,
   createCantonAuthProvider,
@@ -17,7 +18,6 @@ import {
   validateCantonAuthorizationCallback,
 } from '@chainlink/ccip-sdk'
 
-import { JsonRpcProvider } from './cantonProvider'
 import { networkConfig } from '../../helperConfig'
 
 /**
@@ -30,7 +30,7 @@ export type KitCantonConfig = CantonConfig & {
   party: string
   /** CCIP operator party — required by this kit's config validation. */
   ccipParty: string
-  /** CAIP-2 chain ID, e.g. `canton:TestNet` — handed to the JsonRpcProvider. */
+  /** CAIP-2 chain ID, e.g. `canton:TestNet` — handed to the provider. */
   chainId?: string
   /** HTTP protocol version for Ledger API requests: `'2'` (default) or `'1'`. */
   httpVersion?: '1' | '2'
@@ -321,25 +321,26 @@ export async function loadCantonConfigWithAuth(configPath?: string): Promise<Kit
 }
 
 /**
- * Build the kit's Canton JSON API provider from a resolved config, the same
- * way ccip-cli does: the provider owns Ledger API connectivity and the JWT;
- * the SDK only sees the provider plus its operational overrides.
+ * Build the kit's Canton JSON API provider from a resolved config: the
+ * provider owns Ledger API connectivity and the JWT; the SDK only sees the
+ * provider plus its operational overrides.
  */
 export async function buildCantonProvider(
   config: KitCantonConfig,
   ledgerUrl: string,
-): Promise<JsonRpcProvider> {
+): Promise<CantonJsonRpcProvider> {
   if (!config.jwt) {
     throw new Error(
       'Canton provider requires a resolved JWT. Call loadCantonConfigWithAuth() first.',
     )
   }
-  return JsonRpcProvider.fromUrl(
+  return CantonJsonRpcProvider.fromUrl(
     config.chainId ?? 'canton:TestNet',
     ledgerUrl,
     config.jwt,
+    undefined,
+    config.httpVersion,
     config.party,
-    config.httpVersion ?? '2',
   )
 }
 
@@ -351,7 +352,7 @@ export async function buildCantonProvider(
  */
 export function toSdkCantonConfig(
   config: KitCantonConfig,
-  provider: JsonRpcProvider,
+  provider: CantonJsonRpcProvider,
 ): CantonConfig {
   return {
     provider,

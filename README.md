@@ -267,7 +267,7 @@ ccip-starter-kit-canton/
 ├── config/
 │   └── canton-config.example.json
 ├── scripts/
-│   ├── canton-helper/        # Config loader, OIDC auth, and the Canton JSON API provider
+│   ├── canton-helper/        # Config loader and OIDC auth
 │   ├── faucets/              # Sepolia TEST drip
 │   ├── utils/                # Chain loaders, balances, data payload encoding
 │   ├── canton2any/           # Canton source scripts

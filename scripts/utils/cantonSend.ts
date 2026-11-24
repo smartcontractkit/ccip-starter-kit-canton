@@ -1,5 +1,5 @@
+import { formatCantonLinkFeeToken } from '@chainlink/ccip-sdk'
 import { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
-import { formatCantonLinkFeeToken } from '@chainlink/ccip-sdk/dist/canton/defaults.js'
 
 import { type CantonFeeTokenChoice, networkConfig, remoteChainName } from '../../helperConfig'
 

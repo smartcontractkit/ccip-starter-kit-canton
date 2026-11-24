@@ -29,9 +29,7 @@
     "check": "npm run lint && npm run typecheck"
   },
   "dependencies": {
-    "@canton-network/core-splice-provider": "1.17.0",
-    "@chainlink/ccip-sdk": "^1.17.0",
-    "axios": "1.21.0",
+    "@chainlink/ccip-sdk": "^1.18.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.16.0",
     "yargs": "^18.0.0"
