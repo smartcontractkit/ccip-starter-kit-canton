@@ -213,8 +213,8 @@ npm run check-balance
 npm run check-balance -- --chain canton --token link
 npm run check-balance -- --chain sepolia --token test
 
-# Any Canton instrument by full ID (party::fingerprint::tokenId)
-npm run check-balance -- --chain canton --token 'issuer::1220…::my-token'
+# Any Canton instrument by full ID (tokenId@tokenAdmin)
+npm run check-balance -- --chain canton --token 'my-token@issuer::1220…'
 
 # Override account
 npm run check-balance -- --chain canton --token amulet --party 'yourParty::1220…'
