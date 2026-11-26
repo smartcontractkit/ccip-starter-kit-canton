@@ -1,4 +1,5 @@
-import type { CantonChain, CantonConfig, CantonInstrumentId } from '@chainlink/ccip-sdk'
+import type { CantonChain } from '@chainlink/ccip-sdk'
+import type { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
 
 import { ccipHostedAddresses } from './ccipHostedAddresses'
 import {
@@ -28,7 +29,6 @@ interface TarDisclosureBundle {
 
 export interface RegisterTokenPoolOnTarInput {
   canton: CantonChain
-  cantonConfig: CantonConfig
   instrumentId: CantonInstrumentId
   poolInstanceId: string
   poolOwner: string
@@ -38,6 +38,15 @@ export interface RegisterTokenPoolOnTarInput {
   tokenConfigCid?: string
   /** Skip AcceptAdminRole when step 2 already completed (resume at SetPool). */
   skipAccept?: boolean
+}
+
+/**
+ * EDS base URL for TAR disclosures, resolved the same way the SDK resolves
+ * its own EDS clients: per-owner map (network defaults + config overrides)
+ * keyed by the CCIP owner party.
+ */
+function resolveEdsUrl(canton: CantonChain): string {
+  return canton.edsClientProvider.urlFor(canton.ccipParty)
 }
 
 export interface RegisterTokenPoolOnTarResult {
@@ -211,31 +220,43 @@ async function findTokenConfigCid(
   instrumentId: CantonInstrumentId,
   tokenConfigTemplate: string,
 ): Promise<string | undefined> {
-  const { offset } = await canton.provider.getLedgerEnd()
-  const responses = await canton.provider.getActiveContracts({
-    activeAtOffset: offset,
-    eventFormat: {
-      filtersByParty: {
-        [party]: {
-          cumulative: [
-            {
-              identifierFilter: {
-                TemplateFilter: {
-                  value: {
-                    templateId: tokenConfigTemplate,
-                    includeCreatedEventBlob: false,
+  // Ledger API reads go through the provider's `ledgerApi` pass-through.
+  const { offset } = await canton.provider.request({
+    method: 'ledgerApi',
+    params: { requestMethod: 'get', resource: '/v2/state/ledger-end' },
+  })
+  const responses = await canton.provider.request({
+    method: 'ledgerApi',
+    params: {
+      requestMethod: 'post',
+      resource: '/v2/state/active-contracts',
+      body: {
+        activeAtOffset: offset,
+        eventFormat: {
+          filtersByParty: {
+            [party]: {
+              cumulative: [
+                {
+                  identifierFilter: {
+                    TemplateFilter: {
+                      value: {
+                        templateId: tokenConfigTemplate,
+                        includeCreatedEventBlob: false,
+                      },
+                    },
                   },
                 },
-              },
+              ],
             },
-          ],
+          },
+          verbose: true,
         },
       },
-      verbose: true,
     },
   })
 
-  for (const response of responses) {
+  const contractResponses = (responses as unknown[]) ?? []
+  for (const response of contractResponses) {
     const entry = (response as Record<string, unknown>)?.contractEntry as
       | Record<string, unknown>
       | undefined
@@ -275,7 +296,7 @@ export async function registerTokenPoolOnTar(
 ): Promise<RegisterTokenPoolOnTarResult> {
   const tarAddress = ccipHostedAddresses.tokenAdminRegistry
   let { tarContractId, disclosedContracts } = await fetchTarDisclosures(
-    input.cantonConfig.edsUrl,
+    resolveEdsUrl(input.canton),
     tarAddress,
   )
   const updateIds: string[] = []
@@ -333,7 +354,7 @@ export async function registerTokenPoolOnTar(
     tokenConfigCid = proposeResult.tokenConfigCid ?? ''
 
     const tarState = await refreshTarDisclosuresAfterPropose(
-      input.cantonConfig.edsUrl,
+      resolveEdsUrl(input.canton),
       tarAddress,
       proposeResponse.transaction,
       { tarContractId, disclosedContracts },

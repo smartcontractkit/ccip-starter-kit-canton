@@ -65,7 +65,7 @@ async function main() {
       : await (async () => {
           const offRamp =
             ('offRampAddress' in request.message && request.message.offRampAddress) ||
-            (await discoverOffRamp(canton, sepolia, request.lane.onRamp, { logger: console }))
+            (await discoverOffRamp(canton, sepolia, request.lane, { logger: console }))
           const indexer = cantonConfig.indexerUrl ? [cantonConfig.indexerUrl] : undefined
           const verifications = await sepolia.getVerifications({ offRamp, request, indexer })
           const input = await canton.getExecutionInput({ request, verifications })

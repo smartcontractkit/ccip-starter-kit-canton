@@ -1,4 +1,4 @@
-import type { CantonInstrumentId } from '@chainlink/ccip-sdk'
+import type { CantonInstrumentId } from '@chainlink/ccip-sdk/dist/canton/addressCodec.js'
 
 import { ccipHostedAddresses, rawInstanceAddress } from './ccipHostedAddresses'
 import {
